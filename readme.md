@@ -87,7 +87,3 @@ Tested in Chrome, Firefox, Safari, and Edge.
 3. Use the waveform to navigate and select audio
 4. Apply edits using the toolbar buttons
 5. Click **Export** to save your edited audio
-
-## License
-
-MIT License
