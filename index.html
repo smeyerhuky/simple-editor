@@ -545,8 +545,31 @@
             margin-top: 20px;
         }
 
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .checkbox-label input[type="checkbox"]:disabled + span {
+            opacity: 0.5;
+        }
+
         /* Hidden file input */
-        #fileInput {
+        #fileInput, #projectInput {
             display: none;
         }
 
@@ -556,10 +579,56 @@
             color: #666;
             margin-left: 8px;
         }
+
+        /* Cue point lane */
+        .cuepoint-container {
+            height: 32px;
+            position: relative;
+            background-color: #252525;
+            border-bottom: 1px solid #3a3a3a;
+            overflow: hidden;
+        }
+
+        #cuepointCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Cue point name input modal */
+        .cuepoint-input {
+            position: absolute;
+            background-color: #2a2a2a;
+            border: 1px solid #4a4a4a;
+            border-radius: 4px;
+            padding: 4px 8px;
+            display: none;
+            z-index: 50;
+        }
+
+        .cuepoint-input.visible {
+            display: block;
+        }
+
+        .cuepoint-input input {
+            background-color: #1a1a1a;
+            border: 1px solid #4a4a4a;
+            color: #e0e0e0;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            width: 120px;
+        }
+
+        .cuepoint-input input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
     </style>
 </head>
 <body>
     <input type="file" id="fileInput" accept=".wav,.aif,.aiff" multiple>
+    <input type="file" id="projectInput" accept=".seproj">
 
     <!-- Toolbar -->
     <div class="toolbar">
@@ -567,6 +636,9 @@
             <span class="toolbar-label">File</span>
             <button id="importBtn">Import</button>
             <button id="exportBtn" disabled>Export</button>
+            <button id="saveProjectBtn" disabled>Save</button>
+            <button id="loadProjectBtn">Load</button>
+            <button id="addCueBtn" disabled title="Add cue point at playhead (M)">+ Cue</button>
         </div>
         <div class="toolbar-group">
             <span class="toolbar-label">Transport</span>
@@ -586,10 +658,10 @@
             <button id="undoBtn" disabled title="Undo (⌘Z)">Undo</button>
             <button id="redoBtn" disabled title="Redo (⌘⇧Z)">Redo</button>
             <button id="trimBtn" disabled title="Trim to selection (⌘T)">Trim</button>
+            <button id="gainBtn" disabled title="Apply Gain">Gain</button>
             <button id="normalizeBtn" disabled title="Normalize (⌘⇧N)">Normalize</button>
             <button id="fadeInBtn" disabled title="Fade In (⌘F)">Fade In</button>
             <button id="fadeOutBtn" disabled title="Fade Out (⌘⇧F)">Fade Out</button>
-            <button id="gainBtn" disabled title="Apply Gain">Gain</button>
             <button id="reverseBtn" disabled title="Reverse">Reverse</button>
         </div>
     </div>
@@ -598,6 +670,13 @@
     <div class="main-content">
         <!-- Editor area -->
         <div class="editor-area">
+            <!-- Cue point lane -->
+            <div class="cuepoint-container">
+                <canvas id="cuepointCanvas"></canvas>
+                <div class="cuepoint-input" id="cuepointInput">
+                    <input type="text" id="cuepointNameInput" placeholder="Cue name...">
+                </div>
+            </div>
             <!-- Waveform -->
             <div class="waveform-container">
                 <canvas id="waveformCanvas"></canvas>
@@ -701,6 +780,13 @@
                     <option value="24">24-bit</option>
                     <option value="32">32-bit float</option>
                 </select>
+            </div>
+            <div class="modal-row">
+                <label></label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="exportSelection" disabled>
+                    <span>Export selection only</span>
+                </label>
             </div>
             <div class="modal-buttons">
                 <button id="exportCancelBtn">Cancel</button>
@@ -2255,7 +2341,7 @@
 
             addFile(file) {
                 const id = Date.now() + Math.random();
-                this.files.push({ id, file });
+                this.files.push({ id, file, cuePoints: [] });
                 return id;
             }
 
@@ -2293,6 +2379,540 @@
             getAll() {
                 return this.files;
             }
+
+            // Store cue points for a file
+            setCuePoints(id, cuePoints) {
+                const item = this.files.find(f => f.id === id);
+                if (item) {
+                    item.cuePoints = cuePoints;
+                }
+            }
+
+            // Get cue points for a file
+            getCuePoints(id) {
+                const item = this.files.find(f => f.id === id);
+                return item ? item.cuePoints : [];
+            }
+        }
+
+        // ==================== Cue Point Manager ====================
+        class CuePointManager {
+            constructor() {
+                this.cuePoints = [];
+                this.nextId = 1;
+            }
+
+            addCuePoint(sample, name = '') {
+                const cuePoint = {
+                    id: this.nextId++,
+                    sample: sample,
+                    number: this.cuePoints.length + 1,
+                    name: name
+                };
+                this.cuePoints.push(cuePoint);
+                this.sortCuePoints();
+                this.renumberCuePoints();
+                return cuePoint;
+            }
+
+            removeCuePoint(id) {
+                const index = this.cuePoints.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    this.cuePoints.splice(index, 1);
+                    this.renumberCuePoints();
+                }
+            }
+
+            moveCuePoint(id, newSample) {
+                const cuePoint = this.cuePoints.find(c => c.id === id);
+                if (cuePoint) {
+                    cuePoint.sample = Math.max(0, newSample);
+                    this.sortCuePoints();
+                    this.renumberCuePoints();
+                }
+            }
+
+            renameCuePoint(id, newName) {
+                const cuePoint = this.cuePoints.find(c => c.id === id);
+                if (cuePoint) {
+                    cuePoint.name = newName;
+                }
+            }
+
+            getCuePoint(id) {
+                return this.cuePoints.find(c => c.id === id);
+            }
+
+            getCuePointAtSample(sample, tolerance = 0) {
+                return this.cuePoints.find(c => Math.abs(c.sample - sample) <= tolerance);
+            }
+
+            getCuePointsInRange(startSample, endSample) {
+                return this.cuePoints.filter(c => c.sample >= startSample && c.sample <= endSample);
+            }
+
+            getAdjacentCuePoints(sample) {
+                let prev = null;
+                let next = null;
+                for (const cp of this.cuePoints) {
+                    if (cp.sample < sample) {
+                        prev = cp;
+                    } else if (cp.sample > sample && next === null) {
+                        next = cp;
+                        break;
+                    }
+                }
+                return { prev, next };
+            }
+
+            sortCuePoints() {
+                this.cuePoints.sort((a, b) => a.sample - b.sample);
+            }
+
+            renumberCuePoints() {
+                this.cuePoints.forEach((cp, index) => {
+                    cp.number = index + 1;
+                });
+            }
+
+            getAllCuePoints() {
+                return this.cuePoints;
+            }
+
+            clear() {
+                this.cuePoints = [];
+                this.nextId = 1;
+            }
+
+            // Adjust cue points after a region is deleted from the waveform
+            adjustForDeletion(startSample, endSample) {
+                const deleteLength = endSample - startSample;
+
+                // Remove cue points within the deleted region
+                this.cuePoints = this.cuePoints.filter(cp => {
+                    return cp.sample < startSample || cp.sample >= endSample;
+                });
+
+                // Shift cue points after the deleted region
+                this.cuePoints.forEach(cp => {
+                    if (cp.sample >= endSample) {
+                        cp.sample -= deleteLength;
+                    }
+                });
+
+                this.renumberCuePoints();
+            }
+
+            // Adjust cue points after trimming (keeping only a region)
+            adjustForTrim(startSample, endSample) {
+                // Keep only cue points within the trim region, and shift them
+                this.cuePoints = this.cuePoints.filter(cp => {
+                    return cp.sample >= startSample && cp.sample < endSample;
+                });
+
+                // Shift all remaining cue points by startSample
+                this.cuePoints.forEach(cp => {
+                    cp.sample -= startSample;
+                });
+
+                this.renumberCuePoints();
+            }
+
+            toJSON() {
+                return this.cuePoints.map(cp => ({
+                    sample: cp.sample,
+                    name: cp.name
+                }));
+            }
+
+            fromJSON(data) {
+                this.clear();
+                if (Array.isArray(data)) {
+                    data.forEach(cp => {
+                        this.addCuePoint(cp.sample, cp.name || '');
+                    });
+                }
+            }
+        }
+
+        // ==================== Cue Point Renderer ====================
+        class CuePointRenderer {
+            constructor(canvas, cuePointManager) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.cuePointManager = cuePointManager;
+                this.audioBuffer = null;
+                this.scrollOffset = 0;
+                this.samplesPerPixel = 100;
+                this.playheadPosition = 0;
+
+                // Interaction state
+                this.draggingCuePoint = null;
+                this.dragStartX = 0;
+                this.hoveredCuePoint = null;
+
+                // Callbacks
+                this.onCuePointClick = null;
+                this.onCuePointDoubleClick = null;
+                this.onCuePointMove = null;
+                this.onCuePointRemove = null;
+                this.onRegionSelect = null;
+                this.onAddCuePoint = null;
+
+                this.setupResize();
+                this.setupInteraction();
+            }
+
+            setupResize() {
+                const resizeObserver = new ResizeObserver(() => this.resize());
+                resizeObserver.observe(this.canvas.parentElement);
+                this.resize();
+            }
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                this.canvas.width = rect.width * dpr;
+                this.canvas.height = rect.height * dpr;
+                this.ctx.scale(dpr, dpr);
+                this.width = rect.width;
+                this.height = rect.height;
+                this.render();
+            }
+
+            setupInteraction() {
+                this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+                this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+                this.canvas.addEventListener('mouseleave', (e) => this.onMouseLeave(e));
+                this.canvas.addEventListener('dblclick', (e) => this.onDoubleClick(e));
+            }
+
+            pixelToSample(x) {
+                return Math.floor(this.scrollOffset + x * this.samplesPerPixel);
+            }
+
+            sampleToPixel(sample) {
+                return (sample - this.scrollOffset) / this.samplesPerPixel;
+            }
+
+            getCuePointAtPixel(x, tolerance = 10) {
+                const cuePoints = this.cuePointManager.getAllCuePoints();
+                for (const cp of cuePoints) {
+                    const cpX = this.sampleToPixel(cp.sample);
+                    if (Math.abs(x - cpX) <= tolerance) {
+                        return cp;
+                    }
+                }
+                return null;
+            }
+
+            onMouseDown(e) {
+                if (!this.audioBuffer) return;
+
+                const x = e.offsetX;
+                const cuePoint = this.getCuePointAtPixel(x);
+
+                // Cmd/Ctrl+click on cue point to remove
+                if ((e.metaKey || e.ctrlKey) && cuePoint) {
+                    if (this.onCuePointRemove) {
+                        this.onCuePointRemove(cuePoint.id);
+                    }
+                    return;
+                }
+
+                // Shift+click to add cue point at click position
+                if (e.shiftKey) {
+                    const sample = this.pixelToSample(x);
+                    if (sample >= 0 && sample < this.audioBuffer.length) {
+                        if (this.onAddCuePoint) {
+                            this.onAddCuePoint(sample);
+                        }
+                    }
+                    return;
+                }
+
+                if (cuePoint) {
+                    // Start potential drag
+                    this.draggingCuePoint = cuePoint;
+                    this.dragStartX = x;
+                    this.dragStartSample = cuePoint.sample;
+                    this.hasDragged = false;
+                    this.canvas.style.cursor = 'grabbing';
+                }
+            }
+
+            onMouseMove(e) {
+                if (!this.audioBuffer) return;
+
+                const x = e.offsetX;
+
+                if (this.draggingCuePoint) {
+                    // Check if we've moved enough to count as a drag
+                    if (Math.abs(x - this.dragStartX) > 5) {
+                        this.hasDragged = true;
+                    }
+                    if (this.hasDragged) {
+                        // Dragging a cue point
+                        const newSample = Math.max(0, Math.min(this.audioBuffer.length, this.pixelToSample(x)));
+                        if (this.onCuePointMove) {
+                            this.onCuePointMove(this.draggingCuePoint.id, newSample);
+                        }
+                    }
+                } else {
+                    // Check for hover
+                    const cuePoint = this.getCuePointAtPixel(x);
+                    if (cuePoint !== this.hoveredCuePoint) {
+                        this.hoveredCuePoint = cuePoint;
+                        this.canvas.style.cursor = cuePoint ? 'grab' : 'default';
+                        this.render();
+                    }
+                }
+            }
+
+            onMouseUp(e) {
+                if (this.draggingCuePoint) {
+                    if (!this.hasDragged) {
+                        // It was a click, not a drag - play from this cue point
+                        if (this.onCuePointClick) {
+                            this.onCuePointClick(this.draggingCuePoint);
+                        }
+                    }
+                    this.draggingCuePoint = null;
+                    this.hasDragged = false;
+                    this.canvas.style.cursor = this.hoveredCuePoint ? 'grab' : 'default';
+                }
+            }
+
+            onMouseLeave(e) {
+                this.hoveredCuePoint = null;
+                this.draggingCuePoint = null;
+                this.canvas.style.cursor = 'default';
+                this.render();
+            }
+
+            onDoubleClick(e) {
+                if (!this.audioBuffer) return;
+
+                const x = e.offsetX;
+                const clickedCuePoint = this.getCuePointAtPixel(x);
+
+                if (clickedCuePoint) {
+                    // Double-click on cue point: play from that point
+                    if (this.onCuePointDoubleClick) {
+                        this.onCuePointDoubleClick(clickedCuePoint);
+                    }
+                } else {
+                    // Double-click between cue points: select region between adjacent cue points
+                    const clickSample = this.pixelToSample(x);
+                    const { prev, next } = this.cuePointManager.getAdjacentCuePoints(clickSample);
+
+                    const startSample = prev ? prev.sample : 0;
+                    const endSample = next ? next.sample : this.audioBuffer.length;
+
+                    if (this.onRegionSelect) {
+                        this.onRegionSelect(startSample, endSample);
+                    }
+                }
+            }
+
+            setAudioBuffer(buffer) {
+                this.audioBuffer = buffer;
+                this.render();
+            }
+
+            setScrollOffset(offset) {
+                this.scrollOffset = offset;
+                this.render();
+            }
+
+            setSamplesPerPixel(spp) {
+                this.samplesPerPixel = spp;
+                this.render();
+            }
+
+            setPlayheadPosition(sample) {
+                this.playheadPosition = sample;
+                this.render();
+            }
+
+            render() {
+                const ctx = this.ctx;
+                const width = this.width;
+                const height = this.height;
+
+                // Clear
+                ctx.fillStyle = '#252525';
+                ctx.fillRect(0, 0, width, height);
+
+                if (!this.audioBuffer) {
+                    ctx.fillStyle = '#444';
+                    ctx.font = '11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Cue Points', width / 2, height / 2 + 4);
+                    return;
+                }
+
+                // Draw timeline background grid
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, height - 1);
+                ctx.lineTo(width, height - 1);
+                ctx.stroke();
+
+                // Draw file end indicator
+                const fileEndX = this.sampleToPixel(this.audioBuffer.length);
+                if (fileEndX >= 0 && fileEndX <= width) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                    ctx.fillRect(fileEndX, 0, width - fileEndX, height);
+                }
+
+                // Draw cue points
+                const cuePoints = this.cuePointManager.getAllCuePoints();
+                for (const cp of cuePoints) {
+                    this.drawCuePoint(ctx, cp, cp === this.hoveredCuePoint || cp === this.draggingCuePoint);
+                }
+
+                // Draw playhead
+                const playheadX = this.sampleToPixel(this.playheadPosition);
+                if (playheadX >= 0 && playheadX <= width) {
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(playheadX, 0);
+                    ctx.lineTo(playheadX, height);
+                    ctx.stroke();
+                }
+            }
+
+            drawCuePoint(ctx, cuePoint, isHighlighted) {
+                const x = this.sampleToPixel(cuePoint.sample);
+                if (x < -20 || x > this.width + 20) return;
+
+                const flagHeight = 20;
+                const flagWidth = 8;
+
+                // Draw vertical line
+                ctx.strokeStyle = isHighlighted ? '#fbbf24' : '#f59e0b';
+                ctx.lineWidth = isHighlighted ? 2 : 1;
+                ctx.beginPath();
+                ctx.moveTo(x, flagHeight);
+                ctx.lineTo(x, this.height);
+                ctx.stroke();
+
+                // Draw flag
+                ctx.fillStyle = isHighlighted ? '#fbbf24' : '#f59e0b';
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x + flagWidth, flagHeight / 2);
+                ctx.lineTo(x, flagHeight);
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw number in flag
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(cuePoint.number.toString(), x + 1, flagHeight / 2 + 3);
+
+                // Draw name label
+                if (cuePoint.name) {
+                    ctx.fillStyle = isHighlighted ? '#fbbf24' : '#aaa';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(cuePoint.name, x + flagWidth + 4, flagHeight / 2 + 3);
+                }
+            }
+        }
+
+        // ==================== Project Manager ====================
+        class ProjectManager {
+            static async saveProject(audioBuffer, cuePointManager, fileName, metadata = {}) {
+                const project = {
+                    version: 1,
+                    fileName: fileName,
+                    metadata: metadata,
+                    audio: {
+                        sampleRate: audioBuffer.sampleRate,
+                        numberOfChannels: audioBuffer.numberOfChannels,
+                        length: audioBuffer.length,
+                        channels: []
+                    },
+                    cuePoints: cuePointManager.toJSON()
+                };
+
+                // Encode audio data as base64
+                for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+                    const channelData = audioBuffer.getChannelData(c);
+                    const buffer = new ArrayBuffer(channelData.length * 4);
+                    const view = new Float32Array(buffer);
+                    view.set(channelData);
+                    const base64 = ProjectManager.arrayBufferToBase64(buffer);
+                    project.audio.channels.push(base64);
+                }
+
+                return JSON.stringify(project);
+            }
+
+            static async loadProject(jsonString, audioContext) {
+                const project = JSON.parse(jsonString);
+
+                if (!project.version || project.version > 1) {
+                    throw new Error('Unsupported project version');
+                }
+
+                // Decode audio data
+                const audioBuffer = audioContext.createBuffer(
+                    project.audio.numberOfChannels,
+                    project.audio.length,
+                    project.audio.sampleRate
+                );
+
+                for (let c = 0; c < project.audio.numberOfChannels; c++) {
+                    const buffer = ProjectManager.base64ToArrayBuffer(project.audio.channels[c]);
+                    const channelData = new Float32Array(buffer);
+                    audioBuffer.getChannelData(c).set(channelData);
+                }
+
+                return {
+                    audioBuffer: audioBuffer,
+                    cuePoints: project.cuePoints,
+                    fileName: project.fileName,
+                    metadata: project.metadata
+                };
+            }
+
+            static arrayBufferToBase64(buffer) {
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return btoa(binary);
+            }
+
+            static base64ToArrayBuffer(base64) {
+                const binaryString = atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+
+            static downloadProject(jsonString, fileName) {
+                const baseName = fileName ? fileName.replace(/\.[^/.]+$/, '') : 'project';
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = baseName + '.seproj';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
         }
 
         // ==================== Main Application ====================
@@ -2307,7 +2927,15 @@
                 this.fileName = null;
                 this.fileQueue = new FileQueue();
 
+                // Cue point system
+                this.cuePointManager = new CuePointManager();
+                this.cuePointRenderer = new CuePointRenderer(
+                    document.getElementById('cuepointCanvas'),
+                    this.cuePointManager
+                );
+
                 this.setupEventListeners();
+                this.setupCuePointCallbacks();
                 this.setupDragAndDrop();
                 this.updateUI();
             }
@@ -2325,6 +2953,17 @@
                     e.target.value = ''; // Reset input
                 });
                 document.getElementById('exportBtn').addEventListener('click', () => this.showExportModal());
+                document.getElementById('saveProjectBtn').addEventListener('click', () => this.saveProject());
+                document.getElementById('loadProjectBtn').addEventListener('click', () => {
+                    document.getElementById('projectInput').click();
+                });
+                document.getElementById('projectInput').addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.loadProject(e.target.files[0]);
+                    }
+                    e.target.value = '';
+                });
+                document.getElementById('addCueBtn').addEventListener('click', () => this.addCuePointAtPlayhead());
 
                 // Transport
                 document.getElementById('playBtn').addEventListener('click', () => this.play());
@@ -2409,6 +3048,7 @@
                     if (this.audioEngine.audioBuffer) {
                         const sample = Math.floor(time * this.audioEngine.audioBuffer.sampleRate);
                         this.spectrogramRenderer.setPlayheadPosition(sample);
+                        this.cuePointRenderer.setPlayheadPosition(sample);
                     }
                 };
                 this.audioEngine.onPlaybackEnd = () => {
@@ -2416,6 +3056,124 @@
                     this.stopRealtimeAnalysis();
                     this.updateAnalysis();
                 };
+            }
+
+            setupCuePointCallbacks() {
+                // Single click on cue point flag - play from that point
+                this.cuePointRenderer.onCuePointClick = (cuePoint) => {
+                    if (!this.audioEngine.audioBuffer) return;
+                    const time = cuePoint.sample / this.audioEngine.audioBuffer.sampleRate;
+                    this.stop();
+                    this.waveformRenderer.playheadPosition = cuePoint.sample;
+                    this.waveformRenderer.selectionStart = null;
+                    this.waveformRenderer.selectionEnd = null;
+                    this.waveformRenderer.render();
+                    this.waveformRenderer.updateSelectionInfo();
+                    this.spectrogramRenderer.setSelection(null, null);
+                    this.audioEngine.play(time);
+                    this.startRealtimeAnalysis();
+                    this.updateUI();
+                };
+
+                // Double click on cue point - same as single click (play from that point)
+                this.cuePointRenderer.onCuePointDoubleClick = (cuePoint) => {
+                    if (!this.audioEngine.audioBuffer) return;
+                    const time = cuePoint.sample / this.audioEngine.audioBuffer.sampleRate;
+                    this.stop();
+                    this.waveformRenderer.playheadPosition = cuePoint.sample;
+                    this.waveformRenderer.render();
+                    this.audioEngine.play(time);
+                    this.startRealtimeAnalysis();
+                    this.updateUI();
+                };
+
+                // Cue point move
+                this.cuePointRenderer.onCuePointMove = (id, newSample) => {
+                    this.cuePointManager.moveCuePoint(id, newSample);
+                    this.cuePointRenderer.render();
+                };
+
+                // Cue point remove (Cmd/Ctrl+click)
+                this.cuePointRenderer.onCuePointRemove = (id) => {
+                    this.cuePointManager.removeCuePoint(id);
+                    this.cuePointRenderer.render();
+                };
+
+                // Add cue point (shift+click in cue lane)
+                this.cuePointRenderer.onAddCuePoint = (sample) => {
+                    this.pendingCuePointSample = sample;
+                    const cuepointInput = document.getElementById('cuepointInput');
+                    const cuepointNameInput = document.getElementById('cuepointNameInput');
+                    const playheadX = this.cuePointRenderer.sampleToPixel(sample);
+                    cuepointInput.style.left = Math.max(10, Math.min(playheadX, this.cuePointRenderer.width - 150)) + 'px';
+                    cuepointInput.style.top = '4px';
+                    cuepointInput.classList.add('visible');
+                    cuepointNameInput.focus();
+                };
+
+                // Region select (double-click between cue points)
+                this.cuePointRenderer.onRegionSelect = (startSample, endSample) => {
+                    this.waveformRenderer.selectionStart = startSample;
+                    this.waveformRenderer.selectionEnd = endSample;
+                    this.waveformRenderer.render();
+                    this.waveformRenderer.updateSelectionInfo();
+                    this.spectrogramRenderer.setSelection(startSample, endSample);
+                    this.updateUI();
+                };
+
+                // Sync cue point renderer with waveform zoom/scroll
+                const originalOnZoomChange = this.waveformRenderer.onZoomChange;
+                this.waveformRenderer.onZoomChange = () => {
+                    if (originalOnZoomChange) originalOnZoomChange();
+                    this.cuePointRenderer.setSamplesPerPixel(this.waveformRenderer.samplesPerPixel);
+                    this.cuePointRenderer.setScrollOffset(this.waveformRenderer.scrollOffset);
+                };
+
+                const originalOnScrollChange = this.waveformRenderer.onScrollChange;
+                this.waveformRenderer.onScrollChange = () => {
+                    if (originalOnScrollChange) originalOnScrollChange();
+                    this.cuePointRenderer.setScrollOffset(this.waveformRenderer.scrollOffset);
+                };
+
+                // Sync playhead position
+                const originalOnPlayheadChange = this.waveformRenderer.onPlayheadChange;
+                this.waveformRenderer.onPlayheadChange = (sample) => {
+                    if (originalOnPlayheadChange) originalOnPlayheadChange(sample);
+                    this.cuePointRenderer.setPlayheadPosition(sample);
+                };
+
+                // Cue point name input handling
+                const cuepointInput = document.getElementById('cuepointInput');
+                const cuepointNameInput = document.getElementById('cuepointNameInput');
+
+                cuepointNameInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const name = cuepointNameInput.value.trim();
+                        if (this.pendingCuePointSample !== undefined) {
+                            this.cuePointManager.addCuePoint(this.pendingCuePointSample, name);
+                            this.cuePointRenderer.render();
+                            this.pendingCuePointSample = undefined;
+                        }
+                        cuepointInput.classList.remove('visible');
+                        cuepointNameInput.value = '';
+                    } else if (e.key === 'Escape') {
+                        cuepointInput.classList.remove('visible');
+                        cuepointNameInput.value = '';
+                        this.pendingCuePointSample = undefined;
+                    }
+                });
+
+                cuepointNameInput.addEventListener('blur', () => {
+                    // Add cue point with current name when clicking away
+                    const name = cuepointNameInput.value.trim();
+                    if (this.pendingCuePointSample !== undefined) {
+                        this.cuePointManager.addCuePoint(this.pendingCuePointSample, name);
+                        this.cuePointRenderer.render();
+                        this.pendingCuePointSample = undefined;
+                    }
+                    cuepointInput.classList.remove('visible');
+                    cuepointNameInput.value = '';
+                });
             }
 
             handleKeyboard(e) {
@@ -2517,6 +3275,12 @@
                             this.reverse();
                         }
                         break;
+                    case 'm':
+                    case 'M':
+                        if (this.audioEngine.audioBuffer) {
+                            this.addCuePointAtPlayhead();
+                        }
+                        break;
                 }
             }
 
@@ -2546,8 +3310,20 @@
                     this.metering.setAudioBuffer(audioBuffer);
                     this.metering.setAnalyserNode(this.audioEngine.getAnalyserNode());
 
-                    // Update active file in queue
+                    // Set up cue point renderer
+                    this.cuePointManager.clear();
+                    this.cuePointRenderer.setAudioBuffer(audioBuffer);
+                    this.cuePointRenderer.setSamplesPerPixel(this.waveformRenderer.samplesPerPixel);
+                    this.cuePointRenderer.setScrollOffset(this.waveformRenderer.scrollOffset);
+
+                    // Update active file in queue and restore cue points
                     if (fileId) {
+                        // Load cue points for this file from the queue
+                        const savedCuePoints = this.fileQueue.getCuePoints(fileId);
+                        if (savedCuePoints && savedCuePoints.length > 0) {
+                            this.cuePointManager.fromJSON(savedCuePoints);
+                            this.cuePointRenderer.render();
+                        }
                         this.fileQueue.setActive(fileId);
                         this.renderFileList();
                     }
@@ -2613,6 +3389,12 @@
             }
 
             loadFileFromQueue(fileId) {
+                // Save current cue points to the current file before switching
+                const currentFileId = this.fileQueue.getActive();
+                if (currentFileId) {
+                    this.fileQueue.setCuePoints(currentFileId, this.cuePointManager.toJSON());
+                }
+
                 const file = this.fileQueue.getFile(fileId);
                 if (file) {
                     this.importFile(file, fileId);
@@ -2630,6 +3412,8 @@
                     this.audioEngine.audioBuffer = null;
                     this.waveformRenderer.setAudioBuffer(null);
                     this.spectrogramRenderer.setAudioBuffer(null);
+                    this.cuePointManager.clear();
+                    this.cuePointRenderer.setAudioBuffer(null);
                     this.fileName = null;
                     this.updateUI();
                     this.updateFileInfo();
@@ -2826,7 +3610,10 @@
                     selection.start,
                     selection.end
                 );
+                // Adjust cue points for the trim
+                this.cuePointManager.adjustForTrim(selection.start, selection.end);
                 this.applyBuffer(newBuffer);
+                this.cuePointRenderer.render();
             }
 
             deleteSelection() {
@@ -2842,7 +3629,10 @@
                 );
 
                 if (newBuffer) {
+                    // Adjust cue points for the deletion
+                    this.cuePointManager.adjustForDeletion(selection.start, selection.end);
                     this.applyBuffer(newBuffer);
+                    this.cuePointRenderer.render();
                 }
             }
 
@@ -2946,6 +3736,10 @@
             }
 
             showExportModal() {
+                const hasSelection = this.waveformRenderer.hasSelection();
+                const exportSelectionCheckbox = document.getElementById('exportSelection');
+                exportSelectionCheckbox.disabled = !hasSelection;
+                exportSelectionCheckbox.checked = hasSelection; // Auto-check if there's a selection
                 document.getElementById('exportModal').classList.add('visible');
             }
 
@@ -2956,17 +3750,32 @@
             exportFile() {
                 const format = document.getElementById('exportFormat').value;
                 const bitDepth = parseInt(document.getElementById('exportBitDepth').value);
+                const exportSelection = document.getElementById('exportSelection').checked;
+
+                // Determine which buffer to export
+                let bufferToExport = this.audioEngine.audioBuffer;
+                let fileNameSuffix = '';
+
+                if (exportSelection && this.waveformRenderer.hasSelection()) {
+                    const selection = this.waveformRenderer.getSelection();
+                    bufferToExport = this.audioEditor.trim(
+                        this.audioEngine.audioBuffer,
+                        selection.start,
+                        selection.end
+                    );
+                    fileNameSuffix = '_selection';
+                }
 
                 let blob;
                 let extension;
 
                 if (format === 'wav') {
-                    blob = FileHandler.exportWAV(this.audioEngine.audioBuffer, bitDepth);
+                    blob = FileHandler.exportWAV(bufferToExport, bitDepth);
                     extension = '.wav';
                 } else {
                     // AIF doesn't support 32-bit float
                     const aifBitDepth = bitDepth === 32 ? 24 : bitDepth;
-                    blob = FileHandler.exportAIF(this.audioEngine.audioBuffer, aifBitDepth);
+                    blob = FileHandler.exportAIF(bufferToExport, aifBitDepth);
                     extension = '.aif';
                 }
 
@@ -2974,7 +3783,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = baseName + extension;
+                a.download = baseName + fileNameSuffix + extension;
                 a.click();
                 URL.revokeObjectURL(url);
 
@@ -2988,6 +3797,10 @@
 
                 // File buttons
                 document.getElementById('exportBtn').disabled = !hasAudio;
+                document.getElementById('saveProjectBtn').disabled = !hasAudio;
+
+                // Markers
+                document.getElementById('addCueBtn').disabled = !hasAudio;
 
                 // Transport
                 document.getElementById('playBtn').disabled = !hasAudio;
@@ -3010,6 +3823,88 @@
                 document.getElementById('fadeOutBtn').disabled = !hasSelection;
                 document.getElementById('gainBtn').disabled = !hasAudio;
                 document.getElementById('reverseBtn').disabled = !hasAudio;
+            }
+
+            addCuePointAtPlayhead() {
+                if (!this.audioEngine.audioBuffer) return;
+
+                const sample = this.waveformRenderer.playheadPosition;
+
+                // Show name input popup
+                const cuepointInput = document.getElementById('cuepointInput');
+                const cuepointNameInput = document.getElementById('cuepointNameInput');
+
+                // Position the input near the playhead
+                const playheadX = this.cuePointRenderer.sampleToPixel(sample);
+                cuepointInput.style.left = Math.max(10, Math.min(playheadX, this.cuePointRenderer.width - 150)) + 'px';
+                cuepointInput.style.top = '4px';
+
+                this.pendingCuePointSample = sample;
+                cuepointInput.classList.add('visible');
+                cuepointNameInput.focus();
+            }
+
+            async saveProject() {
+                if (!this.audioEngine.audioBuffer) return;
+
+                try {
+                    const jsonString = await ProjectManager.saveProject(
+                        this.audioEngine.audioBuffer,
+                        this.cuePointManager,
+                        this.fileName,
+                        { savedAt: new Date().toISOString() }
+                    );
+                    ProjectManager.downloadProject(jsonString, this.fileName);
+                } catch (err) {
+                    alert('Error saving project: ' + err.message);
+                }
+            }
+
+            async loadProject(file) {
+                try {
+                    const text = await file.text();
+                    await this.audioEngine.init();
+
+                    const project = await ProjectManager.loadProject(text, this.audioEngine.audioContext);
+
+                    // Set up audio editor if needed
+                    if (!this.audioEditor) {
+                        this.audioEditor = new AudioEditor(this.audioEngine.audioContext);
+                    }
+
+                    // Set up undo manager
+                    this.undoManager.setAudioContext(this.audioEngine.audioContext);
+                    this.undoManager.clear();
+
+                    // Set the audio buffer
+                    this.audioEngine.setBuffer(project.audioBuffer);
+                    this.fileName = project.fileName || 'Untitled';
+
+                    // Set up waveform
+                    this.waveformRenderer.setAudioBuffer(project.audioBuffer);
+
+                    // Set up spectrogram
+                    this.spectrogramRenderer.setAudioBuffer(project.audioBuffer);
+                    this.spectrogramRenderer.setAnalyserNode(this.audioEngine.getAnalyserNode());
+                    this.spectrogramRenderer.setSamplesPerPixel(this.waveformRenderer.samplesPerPixel);
+
+                    // Set up metering
+                    this.metering.setAudioBuffer(project.audioBuffer);
+                    this.metering.setAnalyserNode(this.audioEngine.getAnalyserNode());
+
+                    // Load cue points
+                    this.cuePointManager.fromJSON(project.cuePoints);
+                    this.cuePointRenderer.setAudioBuffer(project.audioBuffer);
+                    this.cuePointRenderer.setSamplesPerPixel(this.waveformRenderer.samplesPerPixel);
+                    this.cuePointRenderer.setScrollOffset(this.waveformRenderer.scrollOffset);
+
+                    this.updateUI();
+                    this.updateFileInfo();
+                    this.updateZoomInfo();
+                    this.updateAnalysis();
+                } catch (err) {
+                    alert('Error loading project: ' + err.message);
+                }
             }
 
             updateFileInfo() {
