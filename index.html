@@ -740,8 +740,24 @@
                     <span class="file-stat-value" id="truePeakValue">-</span>
                 </div>
                 <div class="file-stat">
-                    <span class="file-stat-label">LUFS:</span>
+                    <span class="file-stat-label">LUFS (file):</span>
                     <span class="file-stat-value" id="lufsValue">-</span>
+                </div>
+
+                <div class="stats-divider"></div>
+
+                <!-- Real-time LUFS -->
+                <div class="file-stat">
+                    <span class="file-stat-label">LUFS (integrated):</span>
+                    <span class="file-stat-value" id="lufsIntegrated">-</span>
+                </div>
+                <div class="file-stat">
+                    <span class="file-stat-label">LUFS (short-term):</span>
+                    <span class="file-stat-value" id="lufsShortTerm">-</span>
+                </div>
+                <div class="file-stat">
+                    <span class="file-stat-label">LUFS (momentary):</span>
+                    <span class="file-stat-value" id="lufsMomentary">-</span>
                 </div>
             </div>
 
@@ -779,6 +795,14 @@
                     <option value="16">16-bit</option>
                     <option value="24">24-bit</option>
                     <option value="32">32-bit float</option>
+                </select>
+            </div>
+            <div class="modal-row">
+                <label>Dither</label>
+                <select id="exportDither">
+                    <option value="none" selected>None</option>
+                    <option value="tpdf">TPDF</option>
+                    <option value="shaped">Noise shaped</option>
                 </select>
             </div>
             <div class="modal-row">
@@ -1784,6 +1808,11 @@
                 this.truePeakValue = document.getElementById('truePeakValue');
                 this.lufsValue = document.getElementById('lufsValue');
 
+                // Real-time LUFS displays
+                this.lufsIntegratedEl = document.getElementById('lufsIntegrated');
+                this.lufsShortTermEl = document.getElementById('lufsShortTerm');
+                this.lufsMomentaryEl = document.getElementById('lufsMomentary');
+
                 this.analyserNode = null;
                 this.audioBuffer = null;
                 this.isRealtime = false;
@@ -1795,6 +1824,17 @@
                     truePeak: null,
                     lufs: null
                 };
+
+                // Real-time LUFS state
+                this.lufsState = {
+                    kWeightedChannels: null,   // Pre-filtered K-weighted audio data
+                    sampleRate: 0,
+                    blockSize: 0,              // 400ms in samples
+                    integratedBlocks: [],      // All blocks since play started (for gating)
+                    shortTermBlocks: [],       // Last 3 seconds of blocks
+                    currentSample: 0,          // Current playback position
+                    lastBlockSample: 0         // Last sample where we calculated a block
+                };
             }
 
             setAnalyserNode(node) {
@@ -1805,8 +1845,27 @@
                 this.audioBuffer = buffer;
                 if (buffer) {
                     this.calculateFileStats(buffer);
+                    this.prepareRealtimeLUFS(buffer);
                 } else {
                     this.reset();
+                }
+            }
+
+            prepareRealtimeLUFS(audioBuffer) {
+                // Pre-compute K-weighted audio for real-time LUFS measurement
+                const numChannels = audioBuffer.numberOfChannels;
+                const sampleRate = audioBuffer.sampleRate;
+                const coeffs = this.getKWeightingCoeffs(sampleRate);
+
+                this.lufsState.kWeightedChannels = [];
+                this.lufsState.sampleRate = sampleRate;
+                this.lufsState.blockSize = Math.floor(sampleRate * 0.4); // 400ms
+
+                for (let c = 0; c < numChannels; c++) {
+                    const data = audioBuffer.getChannelData(c);
+                    const afterShelf = this.applyBiquad(data, coeffs.shelf);
+                    const kWeighted = this.applyBiquad(afterShelf, coeffs.highpass);
+                    this.lufsState.kWeightedChannels.push(kWeighted);
                 }
             }
 
@@ -1815,31 +1874,42 @@
                 const length = audioBuffer.length;
                 const sampleRate = audioBuffer.sampleRate;
 
-                // Calculate RMS Peak
+                // Calculate RMS Peak (max RMS in 300ms windows)
+                const windowSize = Math.floor(sampleRate * 0.3); // 300ms window
                 let rmsPeakLinear = 0;
                 for (let c = 0; c < numChannels; c++) {
                     const data = audioBuffer.getChannelData(c);
-                    let sum = 0;
-                    for (let i = 0; i < length; i++) {
-                        sum += data[i] * data[i];
+                    for (let i = 0; i < length - windowSize; i += Math.floor(windowSize / 4)) {
+                        let sum = 0;
+                        for (let j = 0; j < windowSize; j++) {
+                            sum += data[i + j] * data[i + j];
+                        }
+                        const rms = Math.sqrt(sum / windowSize);
+                        if (rms > rmsPeakLinear) rmsPeakLinear = rms;
                     }
-                    const rms = Math.sqrt(sum / length);
-                    if (rms > rmsPeakLinear) rmsPeakLinear = rms;
                 }
                 const rmsPeak = rmsPeakLinear > 0 ? 20 * Math.log10(rmsPeakLinear) : -Infinity;
 
-                // Calculate True Peak (using simple 4x oversampling)
+                // Calculate True Peak using 4x oversampling with sinc interpolation
                 let truePeakLinear = 0;
                 for (let c = 0; c < numChannels; c++) {
                     const data = audioBuffer.getChannelData(c);
-                    for (let i = 0; i < length - 1; i++) {
+                    for (let i = 0; i < length; i++) {
                         // Check actual sample
                         const abs = Math.abs(data[i]);
                         if (abs > truePeakLinear) truePeakLinear = abs;
-
-                        // Check inter-sample peaks (simple linear interpolation)
-                        for (let j = 1; j <= 3; j++) {
-                            const interSample = data[i] + (data[i + 1] - data[i]) * (j / 4);
+                    }
+                    // 4x oversampling with 4-point sinc interpolation
+                    for (let i = 1; i < length - 2; i++) {
+                        for (let phase = 1; phase <= 3; phase++) {
+                            const t = phase / 4;
+                            // 4-point Lagrange/sinc approximation
+                            const s0 = data[i - 1];
+                            const s1 = data[i];
+                            const s2 = data[i + 1];
+                            const s3 = data[i + 2];
+                            // Catmull-Rom spline interpolation (better than linear, approximates sinc)
+                            const interSample = s1 + 0.5 * t * (s2 - s0 + t * (2 * s0 - 5 * s1 + 4 * s2 - s3 + t * (3 * (s1 - s2) + s3 - s0)));
                             const absInter = Math.abs(interSample);
                             if (absInter > truePeakLinear) truePeakLinear = absInter;
                         }
@@ -1847,20 +1917,158 @@
                 }
                 const truePeak = truePeakLinear > 0 ? 20 * Math.log10(truePeakLinear) : -Infinity;
 
-                // Calculate LUFS (simplified - real LUFS needs K-weighting filter)
-                // Using integrated loudness approximation
-                let integratedSum = 0;
-                for (let c = 0; c < numChannels; c++) {
-                    const data = audioBuffer.getChannelData(c);
-                    for (let i = 0; i < length; i++) {
-                        integratedSum += data[i] * data[i];
-                    }
-                }
-                const integratedRms = Math.sqrt(integratedSum / (length * numChannels));
-                const lufs = integratedRms > 0 ? 20 * Math.log10(integratedRms) - 0.691 : -Infinity;
+                // Calculate LUFS (ITU-R BS.1770-4 integrated loudness)
+                const lufs = this.calculateLUFS(audioBuffer);
 
                 this.fileStats = { rmsPeak, truePeak, lufs };
                 this.updateFileStatsDisplay();
+            }
+
+            // K-weighting filter coefficients for common sample rates
+            getKWeightingCoeffs(sampleRate) {
+                // Pre-computed biquad coefficients for K-weighting
+                // Stage 1: High shelf (+4dB at high frequencies)
+                // Stage 2: High-pass (~38Hz)
+                // These are approximate coefficients - exact values depend on sample rate
+
+                if (sampleRate === 48000) {
+                    return {
+                        shelf: { b0: 1.53512485958697, b1: -2.69169618940638, b2: 1.19839281085285, a1: -1.69065929318241, a2: 0.73248077421585 },
+                        highpass: { b0: 1.0, b1: -2.0, b2: 1.0, a1: -1.99004745483398, a2: 0.99007225036621 }
+                    };
+                } else if (sampleRate === 44100) {
+                    return {
+                        shelf: { b0: 1.53084094649361, b1: -2.65099526752845, b2: 1.16907762258337, a1: -1.66375011657313, a2: 0.71265879083903 },
+                        highpass: { b0: 1.0, b1: -2.0, b2: 1.0, a1: -1.98916615635498, a2: 0.98919469658594 }
+                    };
+                } else {
+                    // Generic approximation for other sample rates
+                    const fc1 = 1500.0; // shelf frequency
+                    const fc2 = 38.0;   // highpass frequency
+                    const Q = 0.707;
+
+                    // High shelf approximation
+                    const K1 = Math.tan(Math.PI * fc1 / sampleRate);
+                    const V = Math.pow(10, 4 / 20); // +4dB
+                    const norm1 = 1 / (1 + Math.sqrt(2) * K1 + K1 * K1);
+                    const shelf = {
+                        b0: (1 + Math.sqrt(2 * V) * K1 + V * K1 * K1) * norm1,
+                        b1: 2 * (V * K1 * K1 - 1) * norm1,
+                        b2: (1 - Math.sqrt(2 * V) * K1 + V * K1 * K1) * norm1,
+                        a1: 2 * (K1 * K1 - 1) * norm1,
+                        a2: (1 - Math.sqrt(2) * K1 + K1 * K1) * norm1
+                    };
+
+                    // High-pass
+                    const K2 = Math.tan(Math.PI * fc2 / sampleRate);
+                    const norm2 = 1 / (1 + K2 / Q + K2 * K2);
+                    const highpass = {
+                        b0: norm2,
+                        b1: -2 * norm2,
+                        b2: norm2,
+                        a1: 2 * (K2 * K2 - 1) * norm2,
+                        a2: (1 - K2 / Q + K2 * K2) * norm2
+                    };
+
+                    return { shelf, highpass };
+                }
+            }
+
+            applyBiquad(samples, coeffs) {
+                const output = new Float32Array(samples.length);
+                let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+
+                for (let i = 0; i < samples.length; i++) {
+                    const x0 = samples[i];
+                    const y0 = coeffs.b0 * x0 + coeffs.b1 * x1 + coeffs.b2 * x2 - coeffs.a1 * y1 - coeffs.a2 * y2;
+                    output[i] = y0;
+                    x2 = x1; x1 = x0;
+                    y2 = y1; y1 = y0;
+                }
+
+                return output;
+            }
+
+            calculateLUFS(audioBuffer) {
+                // ITU-R BS.1770-4 Integrated Loudness with gating
+                const numChannels = audioBuffer.numberOfChannels;
+                const length = audioBuffer.length;
+                const sampleRate = audioBuffer.sampleRate;
+                const coeffs = this.getKWeightingCoeffs(sampleRate);
+
+                // Apply K-weighting to each channel
+                const kWeightedChannels = [];
+                for (let c = 0; c < numChannels; c++) {
+                    const data = audioBuffer.getChannelData(c);
+                    const afterShelf = this.applyBiquad(data, coeffs.shelf);
+                    const kWeighted = this.applyBiquad(afterShelf, coeffs.highpass);
+                    kWeightedChannels.push(kWeighted);
+                }
+
+                // Channel weights per ITU-R BS.1770
+                // L, R, C = 1.0; LFE = 0; Ls, Rs = 1.41
+                const getChannelWeight = (channel, totalChannels) => {
+                    if (totalChannels <= 2) return 1.0; // Mono or stereo
+                    if (channel === 3) return 0; // LFE (in 5.1 layout: L, R, C, LFE, Ls, Rs)
+                    if (channel >= 4) return 1.41; // Surround channels
+                    return 1.0; // Front channels
+                };
+
+                // Block-based measurement: 400ms blocks, 75% overlap (100ms hop)
+                const blockSize = Math.floor(sampleRate * 0.4); // 400ms
+                const hopSize = Math.floor(sampleRate * 0.1);   // 100ms overlap
+                const blocks = [];
+
+                for (let start = 0; start + blockSize <= length; start += hopSize) {
+                    let blockSum = 0;
+
+                    for (let c = 0; c < numChannels; c++) {
+                        const weight = getChannelWeight(c, numChannels);
+                        if (weight === 0) continue;
+
+                        const kWeighted = kWeightedChannels[c];
+                        let channelSum = 0;
+
+                        for (let i = 0; i < blockSize; i++) {
+                            const sample = kWeighted[start + i];
+                            channelSum += sample * sample;
+                        }
+
+                        blockSum += weight * (channelSum / blockSize);
+                    }
+
+                    // Store mean square for this block
+                    blocks.push(blockSum);
+                }
+
+                if (blocks.length === 0) return -Infinity;
+
+                // Convert to LUFS for gating
+                const blockLoudness = blocks.map(ms => ms > 0 ? -0.691 + 10 * Math.log10(ms) : -Infinity);
+
+                // Step 1: Absolute gating at -70 LUFS
+                const absoluteThreshold = -70;
+                const absoluteGatedBlocks = blocks.filter((ms, i) => blockLoudness[i] > absoluteThreshold);
+
+                if (absoluteGatedBlocks.length === 0) return -Infinity;
+
+                // Calculate ungated loudness (after absolute gating)
+                const absoluteGatedMean = absoluteGatedBlocks.reduce((a, b) => a + b, 0) / absoluteGatedBlocks.length;
+                const ungatedLoudness = absoluteGatedMean > 0 ? -0.691 + 10 * Math.log10(absoluteGatedMean) : -Infinity;
+
+                // Step 2: Relative gating at -10 LU below ungated loudness
+                const relativeThreshold = ungatedLoudness - 10;
+                const relativeGatedBlocks = blocks.filter((ms, i) => blockLoudness[i] > relativeThreshold);
+
+                if (relativeGatedBlocks.length === 0) return -Infinity;
+
+                // Calculate final integrated loudness
+                const finalMean = relativeGatedBlocks.reduce((a, b) => a + b, 0) / relativeGatedBlocks.length;
+
+                if (finalMean > 0) {
+                    return -0.691 + 10 * Math.log10(finalMean);
+                }
+                return -Infinity;
             }
 
             updateFileStatsDisplay() {
@@ -1873,6 +2081,11 @@
 
             startRealtime() {
                 this.isRealtime = true;
+                // Reset LUFS state for new playback session
+                this.lufsState.integratedBlocks = [];
+                this.lufsState.shortTermBlocks = [];
+                this.lufsState.currentSample = 0;
+                this.lufsState.lastBlockSample = 0;
                 this.updateRealtime();
             }
 
@@ -1883,6 +2096,13 @@
                 }
                 // Reset peak display
                 this.updatePeakDisplay(-Infinity);
+                // Reset momentary (no longer valid), but keep integrated and short-term
+                this.lufsMomentaryEl.textContent = '-';
+            }
+
+            setPlaybackPosition(sample) {
+                // Called from the app to update current playback position
+                this.lufsState.currentSample = sample;
             }
 
             updateRealtime() {
@@ -1902,7 +2122,118 @@
 
                 this.updatePeakDisplay(peakDb);
 
+                // Update real-time LUFS
+                this.updateRealtimeLUFS();
+
                 this.animationFrame = requestAnimationFrame(() => this.updateRealtime());
+            }
+
+            updateRealtimeLUFS() {
+                if (!this.lufsState.kWeightedChannels || this.lufsState.kWeightedChannels.length === 0) return;
+
+                const blockSize = this.lufsState.blockSize;
+                const hopSize = Math.floor(blockSize / 4); // 100ms hop
+                const currentSample = this.lufsState.currentSample;
+                const numChannels = this.lufsState.kWeightedChannels.length;
+                const totalLength = this.lufsState.kWeightedChannels[0].length;
+
+                // Calculate new blocks since last update
+                while (this.lufsState.lastBlockSample + blockSize <= currentSample) {
+                    const blockStart = this.lufsState.lastBlockSample;
+
+                    if (blockStart + blockSize > totalLength) break;
+
+                    // Calculate block loudness
+                    let blockSum = 0;
+                    for (let c = 0; c < numChannels; c++) {
+                        const weight = this.getChannelWeight(c, numChannels);
+                        if (weight === 0) continue;
+
+                        const kWeighted = this.lufsState.kWeightedChannels[c];
+                        let channelSum = 0;
+
+                        for (let i = 0; i < blockSize; i++) {
+                            const sample = kWeighted[blockStart + i];
+                            channelSum += sample * sample;
+                        }
+
+                        blockSum += weight * (channelSum / blockSize);
+                    }
+
+                    // Store block mean square
+                    const blockLUFS = blockSum > 0 ? -0.691 + 10 * Math.log10(blockSum) : -Infinity;
+
+                    this.lufsState.integratedBlocks.push({ ms: blockSum, lufs: blockLUFS });
+                    this.lufsState.shortTermBlocks.push({ ms: blockSum, lufs: blockLUFS });
+
+                    this.lufsState.lastBlockSample += hopSize;
+                }
+
+                // Trim short-term blocks to last 3 seconds (30 blocks at 100ms hop)
+                const maxShortTermBlocks = 30;
+                if (this.lufsState.shortTermBlocks.length > maxShortTermBlocks) {
+                    this.lufsState.shortTermBlocks = this.lufsState.shortTermBlocks.slice(-maxShortTermBlocks);
+                }
+
+                // Calculate and display LUFS values
+                this.displayRealtimeLUFS();
+            }
+
+            getChannelWeight(channel, totalChannels) {
+                if (totalChannels <= 2) return 1.0;
+                if (channel === 3) return 0; // LFE
+                if (channel >= 4) return 1.41; // Surround
+                return 1.0;
+            }
+
+            displayRealtimeLUFS() {
+                // Momentary (last 400ms = ~4 blocks)
+                const momentaryBlocks = this.lufsState.shortTermBlocks.slice(-4);
+                const momentary = this.calculateGatedLUFS(momentaryBlocks, false); // No gating for momentary
+                this.lufsMomentaryEl.textContent = isFinite(momentary) ? momentary.toFixed(1) + ' LUFS' : '-';
+
+                // Short-term (last 3 seconds)
+                const shortTerm = this.calculateGatedLUFS(this.lufsState.shortTermBlocks, false); // No gating for short-term
+                this.lufsShortTermEl.textContent = isFinite(shortTerm) ? shortTerm.toFixed(1) + ' LUFS' : '-';
+
+                // Integrated (all blocks since play, with gating)
+                const integrated = this.calculateGatedLUFS(this.lufsState.integratedBlocks, true);
+                this.lufsIntegratedEl.textContent = isFinite(integrated) ? integrated.toFixed(1) + ' LUFS' : '-';
+            }
+
+            calculateGatedLUFS(blocks, useGating) {
+                if (blocks.length === 0) return -Infinity;
+
+                if (!useGating) {
+                    // Simple average without gating
+                    const sum = blocks.reduce((a, b) => a + b.ms, 0);
+                    const mean = sum / blocks.length;
+                    return mean > 0 ? -0.691 + 10 * Math.log10(mean) : -Infinity;
+                }
+
+                // With gating (ITU-R BS.1770-4)
+                // Step 1: Absolute gating at -70 LUFS
+                const absoluteThreshold = -70;
+                const absoluteGated = blocks.filter(b => b.lufs > absoluteThreshold);
+
+                if (absoluteGated.length === 0) return -Infinity;
+
+                // Calculate ungated loudness
+                const absoluteSum = absoluteGated.reduce((a, b) => a + b.ms, 0);
+                const absoluteMean = absoluteSum / absoluteGated.length;
+                const ungatedLoudness = absoluteMean > 0 ? -0.691 + 10 * Math.log10(absoluteMean) : -Infinity;
+
+                // Step 2: Relative gating at -10 LU below ungated
+                const relativeThreshold = ungatedLoudness - 10;
+                const relativeGated = blocks.filter(b => b.lufs > relativeThreshold);
+
+                if (relativeGated.length === 0) return -Infinity;
+
+                // Final integrated loudness
+                const finalSum = relativeGated.reduce((a, b) => a + b.ms, 0);
+                const finalMean = finalSum / relativeGated.length;
+
+                return finalMean > 0 ? -0.691 + 10 * Math.log10(finalMean) : -Infinity;
             }
 
             updatePeakDisplay(peakDb) {
@@ -1927,6 +2258,13 @@
                 this.updatePeakDisplay(-Infinity);
                 this.fileStats = { rmsPeak: null, truePeak: null, lufs: null };
                 this.updateFileStatsDisplay();
+                // Reset real-time LUFS
+                this.lufsState.kWeightedChannels = null;
+                this.lufsState.integratedBlocks = [];
+                this.lufsState.shortTermBlocks = [];
+                this.lufsIntegratedEl.textContent = '-';
+                this.lufsShortTermEl.textContent = '-';
+                this.lufsMomentaryEl.textContent = '-';
             }
         }
 
@@ -1941,7 +2279,34 @@
                 });
             }
 
-            static exportWAV(audioBuffer, bitDepth = 16) {
+            // Dithering: TPDF (Triangular Probability Density Function)
+            static ditherTPDF(bitDepth) {
+                // Generate two uniform random numbers and subtract for triangular distribution
+                const lsb = 1.0 / (1 << (bitDepth - 1));
+                return (Math.random() - Math.random()) * lsb;
+            }
+
+            // Dithering: Noise shaped (simple first-order noise shaping)
+            static createNoiseShaper(numChannels) {
+                const errorBuffer = new Array(numChannels).fill(0);
+                return {
+                    process: (sample, channel, bitDepth) => {
+                        const lsb = 1.0 / (1 << (bitDepth - 1));
+                        // Add previous quantization error (feedback)
+                        const shaped = sample + errorBuffer[channel] * 0.5;
+                        // Add TPDF dither
+                        const dithered = shaped + (Math.random() - Math.random()) * lsb;
+                        // Quantize
+                        const scale = (1 << (bitDepth - 1)) - 1;
+                        const quantized = Math.round(Math.max(-1, Math.min(1, dithered)) * scale) / scale;
+                        // Store error for next sample
+                        errorBuffer[channel] = shaped - quantized;
+                        return quantized;
+                    }
+                };
+            }
+
+            static exportWAV(audioBuffer, bitDepth = 16, dither = 'none') {
                 const numChannels = audioBuffer.numberOfChannels;
                 const sampleRate = audioBuffer.sampleRate;
                 const length = audioBuffer.length;
@@ -1985,19 +2350,35 @@
                     channels.push(audioBuffer.getChannelData(c));
                 }
 
+                // Set up noise shaper if needed
+                const noiseShaper = dither === 'shaped' ? this.createNoiseShaper(numChannels) : null;
+
                 let offset = 44;
                 for (let i = 0; i < length; i++) {
                     for (let c = 0; c < numChannels; c++) {
-                        const sample = channels[c][i];
+                        let sample = channels[c][i];
+
                         if (bitDepth === 32) {
                             view.setFloat32(offset, sample, true);
                         } else if (bitDepth === 24) {
-                            const intSample = Math.max(-1, Math.min(1, sample)) * 0x7FFFFF;
+                            // Apply dithering for fixed-point formats
+                            if (dither === 'tpdf') {
+                                sample += this.ditherTPDF(24);
+                            } else if (dither === 'shaped') {
+                                sample = noiseShaper.process(sample, c, 24);
+                            }
+                            const intSample = Math.round(Math.max(-1, Math.min(1, sample)) * 0x7FFFFF);
                             view.setUint8(offset, intSample & 0xFF);
                             view.setUint8(offset + 1, (intSample >> 8) & 0xFF);
                             view.setUint8(offset + 2, (intSample >> 16) & 0xFF);
                         } else {
-                            const intSample = Math.max(-1, Math.min(1, sample)) * 0x7FFF;
+                            // 16-bit
+                            if (dither === 'tpdf') {
+                                sample += this.ditherTPDF(16);
+                            } else if (dither === 'shaped') {
+                                sample = noiseShaper.process(sample, c, 16);
+                            }
+                            const intSample = Math.round(Math.max(-1, Math.min(1, sample)) * 0x7FFF);
                             view.setInt16(offset, intSample, true);
                         }
                         offset += bytesPerSample;
@@ -2007,7 +2388,7 @@
                 return new Blob([buffer], { type: 'audio/wav' });
             }
 
-            static exportAIF(audioBuffer, bitDepth = 16) {
+            static exportAIF(audioBuffer, bitDepth = 16, dither = 'none') {
                 const numChannels = audioBuffer.numberOfChannels;
                 const sampleRate = audioBuffer.sampleRate;
                 const length = audioBuffer.length;
@@ -2048,20 +2429,36 @@
                     channels.push(audioBuffer.getChannelData(c));
                 }
 
+                // Set up noise shaper if needed
+                const noiseShaper = dither === 'shaped' ? this.createNoiseShaper(numChannels) : null;
+
                 let offset = ssndOffset + 16;
                 for (let i = 0; i < length; i++) {
                     for (let c = 0; c < numChannels; c++) {
-                        const sample = channels[c][i];
+                        let sample = channels[c][i];
+
                         if (bitDepth === 24) {
-                            const intSample = Math.max(-1, Math.min(1, sample)) * 0x7FFFFF;
+                            if (dither === 'tpdf') {
+                                sample += this.ditherTPDF(24);
+                            } else if (dither === 'shaped') {
+                                sample = noiseShaper.process(sample, c, 24);
+                            }
+                            const intSample = Math.round(Math.max(-1, Math.min(1, sample)) * 0x7FFFFF);
                             view.setUint8(offset, (intSample >> 16) & 0xFF);
                             view.setUint8(offset + 1, (intSample >> 8) & 0xFF);
                             view.setUint8(offset + 2, intSample & 0xFF);
                         } else if (bitDepth === 32) {
-                            const intSample = Math.max(-1, Math.min(1, sample)) * 0x7FFFFFFF;
+                            // 32-bit integer (not float) for AIF - no dithering needed
+                            const intSample = Math.round(Math.max(-1, Math.min(1, sample)) * 0x7FFFFFFF);
                             view.setInt32(offset, intSample, false);
                         } else {
-                            const intSample = Math.max(-1, Math.min(1, sample)) * 0x7FFF;
+                            // 16-bit
+                            if (dither === 'tpdf') {
+                                sample += this.ditherTPDF(16);
+                            } else if (dither === 'shaped') {
+                                sample = noiseShaper.process(sample, c, 16);
+                            }
+                            const intSample = Math.round(Math.max(-1, Math.min(1, sample)) * 0x7FFF);
                             view.setInt16(offset, intSample, false);
                         }
                         offset += bytesPerSample;
@@ -2214,7 +2611,7 @@
                 for (let c = 0; c < numChannels; c++) {
                     const data = audioBuffer.getChannelData(c);
                     for (let i = startSample; i < endSample; i++) {
-                        data[i] = Math.max(-1, Math.min(1, data[i] * gainLinear));
+                        data[i] *= gainLinear;
                     }
                 }
 
@@ -3049,6 +3446,7 @@
                         const sample = Math.floor(time * this.audioEngine.audioBuffer.sampleRate);
                         this.spectrogramRenderer.setPlayheadPosition(sample);
                         this.cuePointRenderer.setPlayheadPosition(sample);
+                        this.metering.setPlaybackPosition(sample);
                     }
                 };
                 this.audioEngine.onPlaybackEnd = () => {
@@ -3750,6 +4148,7 @@
             exportFile() {
                 const format = document.getElementById('exportFormat').value;
                 const bitDepth = parseInt(document.getElementById('exportBitDepth').value);
+                const dither = document.getElementById('exportDither').value;
                 const exportSelection = document.getElementById('exportSelection').checked;
 
                 // Determine which buffer to export
@@ -3770,12 +4169,12 @@
                 let extension;
 
                 if (format === 'wav') {
-                    blob = FileHandler.exportWAV(bufferToExport, bitDepth);
+                    blob = FileHandler.exportWAV(bufferToExport, bitDepth, dither);
                     extension = '.wav';
                 } else {
                     // AIF doesn't support 32-bit float
                     const aifBitDepth = bitDepth === 32 ? 24 : bitDepth;
-                    blob = FileHandler.exportAIF(bufferToExport, aifBitDepth);
+                    blob = FileHandler.exportAIF(bufferToExport, aifBitDepth, dither);
                     extension = '.aif';
                 }
 
