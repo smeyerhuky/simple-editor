@@ -685,6 +685,69 @@
             display: block;
         }
 
+        /* :target-based track switching (URL hash method) */
+        .audio-track-container {
+            display: none;
+        }
+
+        .audio-track-container:target {
+            display: block !important;
+        }
+
+        /* If no hash in URL, show first track */
+        .audio-track-container:first-of-type:not(:target) {
+            display: block;
+        }
+
+        /* Editable audio source field */
+        .editable-source {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px;
+            color: var(--primary);
+            font-family: monospace;
+            font-size: 12px;
+            min-height: 60px;
+            max-width: 100%;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .editable-source:focus {
+            outline: 2px solid var(--primary);
+            background: #0a0a0a;
+        }
+
+        .editable-source:empty::before {
+            content: 'Click here to paste audio URL or file path...';
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        /* Volume control sections */
+        .volume-controls {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .volume-controls label {
+            font-size: 10px;
+            padding: 3px 6px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .volume-controls input:checked + label {
+            background: var(--success);
+            color: white;
+        }
+
         /* Track selector styling */
         .track-selector {
             display: flex;
@@ -899,16 +962,59 @@
         </audio>
     </div>
 
+    <!-- :target-based Audio Tracks (URL hash navigation) -->
+    <div id="audioTrack1" class="audio-track-container" style="position: fixed; bottom: 100px; right: 20px; z-index: 999; background: var(--bg-secondary); border: 2px solid var(--success); border-radius: var(--radius); padding: 12px; box-shadow: 0 4px 12px var(--shadow); max-width: 400px;">
+        <h4 style="margin: 0 0 8px 0; color: var(--success); font-size: 12px;">Track 1 (Hash Nav)</h4>
+        <audio controls loop style="width: 100%;">
+            <source src="" type="audio/wav">
+        </audio>
+        <div style="margin-top: 8px; font-size: 10px; color: var(--text-dim);">
+            Edit source URL:
+        </div>
+        <div class="editable-source" contenteditable="true">your-audio-file.wav</div>
+        <div style="margin-top: 8px; font-size: 10px; color: var(--text-dim);">
+            Instructions: Copy the URL above, save this HTML file, edit the &lt;source src=""&gt; on line 828, paste your URL, then reload.
+        </div>
+    </div>
+
+    <div id="audioTrack2" class="audio-track-container" style="position: fixed; bottom: 100px; right: 20px; z-index: 999; background: var(--bg-secondary); border: 2px solid var(--warning); border-radius: var(--radius); padding: 12px; box-shadow: 0 4px 12px var(--shadow); max-width: 400px;">
+        <h4 style="margin: 0 0 8px 0; color: var(--warning); font-size: 12px;">Track 2 (Demo Audio)</h4>
+        <audio controls loop style="width: 100%;">
+            <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+        </audio>
+        <div style="margin-top: 8px; font-size: 10px; color: var(--text-dim);">
+            ✅ This track has embedded demo audio - click play!
+        </div>
+    </div>
+
+    <div id="audioTrack3" class="audio-track-container" style="position: fixed; bottom: 100px; right: 20px; z-index: 999; background: var(--bg-secondary); border: 2px solid var(--purple); border-radius: var(--radius); padding: 12px; box-shadow: 0 4px 12px var(--shadow); max-width: 400px;">
+        <h4 style="margin: 0 0 8px 0; color: var(--purple); font-size: 12px;">Track 3 (Your Audio)</h4>
+        <audio controls loop style="width: 100%;">
+            <source src="" type="audio/wav">
+        </audio>
+        <div style="margin-top: 8px; font-size: 10px; color: var(--text-dim);">
+            Edit source URL:
+        </div>
+        <div class="editable-source" contenteditable="true">your-second-audio.mp3</div>
+    </div>
+
     <!-- Toolbar -->
     <div class="toolbar">
         <div class="toolbar-group">
-            <span class="toolbar-label">Audio Source</span>
+            <span class="toolbar-label">Radio Tracks</span>
             <div class="track-selector">
                 <label for="track1">Track 1</label>
                 <label for="track2">Track 2</label>
                 <label for="track3">Track 3</label>
                 <label for="customTrack">Custom</label>
             </div>
+        </div>
+
+        <div class="toolbar-group">
+            <span class="toolbar-label">Hash Nav</span>
+            <a href="#audioTrack1" style="font-size: 11px; padding: 4px 8px; background: var(--success); color: white; border-radius: var(--radius); text-decoration: none; transition: var(--transition);">Track 1</a>
+            <a href="#audioTrack2" style="font-size: 11px; padding: 4px 8px; background: var(--warning); color: white; border-radius: var(--radius); text-decoration: none; transition: var(--transition);">Track 2 ⭐</a>
+            <a href="#audioTrack3" style="font-size: 11px; padding: 4px 8px; background: var(--purple); color: white; border-radius: var(--radius); text-decoration: none; transition: var(--transition);">Track 3</a>
         </div>
 
         <div class="toolbar-group">
@@ -957,10 +1063,23 @@
         <label for="showInstructions" class="close-btn">&times;</label>
         <h3>📖 How to Load Audio Files (No JavaScript Required)</h3>
 
-        <h4>Method 1: Edit HTML Directly (Recommended)</h4>
+        <p style="background: var(--success); color: white; padding: 8px; border-radius: var(--radius); margin-bottom: 12px;">
+            <strong>🆕 NEW: Hash Navigation Method!</strong> Click the "Hash Nav" buttons (Track 2⭐ has demo audio ready to play!)
+        </p>
+
+        <h4>Method 1: Hash Navigation + contenteditable (✨ NEW!)</h4>
+        <ol>
+            <li>Click "Hash Nav → Track 2 ⭐" in toolbar (has working demo audio!)</li>
+            <li>Or manually navigate to: <code>#audioTrack1</code>, <code>#audioTrack2</code>, <code>#audioTrack3</code></li>
+            <li>Edit the contenteditable field to paste your audio URL</li>
+            <li>Save HTML file, edit the <code>&lt;source src=""&gt;</code> tag with your URL</li>
+            <li>Reload page - your audio will load!</li>
+        </ol>
+
+        <h4>Method 2: Edit HTML Directly (Still Works)</h4>
         <ol>
             <li>Right-click this page → "View Page Source" or "Inspect Element"</li>
-            <li>Find the <code>&lt;audio&gt;</code> elements (lines 820-837)</li>
+            <li>Find the <code>&lt;audio&gt;</code> elements (search for "audio id=")</li>
             <li>Add your audio file inside a <code>&lt;source&gt;</code> tag:</li>
         </ol>
         <pre style="background: var(--bg-primary); padding: 12px; border-radius: var(--radius); margin: 8px 0; overflow-x: auto;"><code>&lt;audio id="audio1" class="audio-player" preload="auto" controls loop&gt;
@@ -991,21 +1110,32 @@
             <li>Track 2 uses this method with a simple sine wave tone</li>
         </ul>
 
-        <h4>🎵 Switching Between Tracks</h4>
+        <h4>🎵 Track Switching Methods</h4>
         <ul>
-            <li>Use the "Audio Source" buttons in the toolbar</li>
-            <li>Track 1-3: Your custom audio files</li>
-            <li>Track 2: Demo audio (sine wave)</li>
-            <li>The active audio player appears in the bottom-right corner</li>
+            <li><strong>Hash Nav (NEW!):</strong> Click "Hash Nav" buttons - uses :target CSS pseudo-class</li>
+            <li><strong>Radio Tracks:</strong> Click "Radio Tracks" buttons - uses :checked CSS pseudo-class</li>
+            <li><strong>URL Direct:</strong> Add <code>#audioTrack2</code> to URL and bookmark it!</li>
+            <li><strong>contenteditable:</strong> Click and edit the text fields to paste URLs</li>
+        </ul>
+
+        <h4>✨ Advanced HTML/CSS Features Used</h4>
+        <ul>
+            <li><strong>:target pseudo-class</strong> - URL hash navigation (#audioTrack1, etc.)</li>
+            <li><strong>contenteditable attribute</strong> - Edit audio URLs in-browser</li>
+            <li><strong>SVG SMIL animations</strong> - Waveform animates without JavaScript!</li>
+            <li><strong>CSS :checked selector</strong> - State management with radio/checkbox</li>
+            <li><strong>Data URLs</strong> - Embedded audio in base64</li>
+            <li><strong>Native &lt;audio&gt; controls</strong> - Full playback functionality</li>
         </ul>
 
         <h4>⚠️ Current Limitations (HTML/CSS Only)</h4>
         <ul>
             <li>File picker button doesn't work (requires JavaScript)</li>
             <li>URL input is informational only (requires JavaScript to load)</li>
-            <li>Volume/playback controls are UI only (use native audio controls)</li>
+            <li>contenteditable changes aren't saved (must edit HTML file)</li>
+            <li>Volume/playback range sliders are UI only (use native audio controls)</li>
             <li>Effects are visual CSS filters, not actual audio processing</li>
-            <li>You must manually edit HTML to load your own audio files</li>
+            <li>Waveform is animated SVG, not generated from actual audio data</li>
         </ul>
 
         <p style="margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: var(--radius); border-left: 3px solid var(--primary);">
@@ -1035,8 +1165,17 @@
                         </linearGradient>
                     </defs>
 
-                    <!-- Left Channel Waveform -->
-                    <path class="waveform-path" stroke="url(#waveGradient)" d="M0,100 Q25,80 50,85 T100,90 Q125,70 150,75 T200,80 Q225,60 250,65 T300,70 Q325,85 350,90 T400,95 Q425,110 450,105 T500,100 Q525,85 550,90 T600,95 Q625,75 650,80 T700,85 Q725,95 750,100 T800,105 Q825,90 850,95 T900,100 Q925,110 950,105 T1000,100"/>
+                    <!-- Left Channel Waveform with SMIL Animation -->
+                    <path class="waveform-path" stroke="url(#waveGradient)" d="M0,100 Q25,80 50,85 T100,90 Q125,70 150,75 T200,80 Q225,60 250,65 T300,70 Q325,85 350,90 T400,95 Q425,110 450,105 T500,100 Q525,85 550,90 T600,95 Q625,75 650,80 T700,85 Q725,95 750,100 T800,105 Q825,90 850,95 T900,100 Q925,110 950,105 T1000,100">
+                        <!-- SMIL Animation: Animate the waveform -->
+                        <animate attributeName="d"
+                                 dur="3s"
+                                 repeatCount="indefinite"
+                                 values="M0,100 Q25,80 50,85 T100,90 Q125,70 150,75 T200,80 Q225,60 250,65 T300,70 Q325,85 350,90 T400,95 Q425,110 450,105 T500,100 Q525,85 550,90 T600,95 Q625,75 650,80 T700,85 Q725,95 750,100 T800,105 Q825,90 850,95 T900,100 Q925,110 950,105 T1000,100;
+                                         M0,100 Q25,70 50,75 T100,80 Q125,60 150,65 T200,70 Q225,50 250,55 T300,60 Q325,75 350,80 T400,85 Q425,100 450,95 T500,90 Q525,75 550,80 T600,85 Q625,65 650,70 T700,75 Q725,85 750,90 T800,95 Q825,80 850,85 T900,90 Q925,100 950,95 T1000,100;
+                                         M0,100 Q25,90 50,95 T100,100 Q125,80 150,85 T200,90 Q225,70 250,75 T300,80 Q325,95 350,100 T400,105 Q425,120 450,115 T500,110 Q525,95 550,100 T600,105 Q625,85 650,90 T700,95 Q725,105 750,110 T800,115 Q825,100 850,105 T900,110 Q925,120 950,115 T1000,100;
+                                         M0,100 Q25,80 50,85 T100,90 Q125,70 150,75 T200,80 Q225,60 250,65 T300,70 Q325,85 350,90 T400,95 Q425,110 450,105 T500,100 Q525,85 550,90 T600,95 Q625,75 650,80 T700,85 Q725,95 750,100 T800,105 Q825,90 850,95 T900,100 Q925,110 950,105 T1000,100"/>
+                    </path>
 
                     <!-- Filled area -->
                     <path class="waveform-fill" d="M0,100 Q25,80 50,85 T100,90 Q125,70 150,75 T200,80 Q225,60 250,65 T300,70 Q325,85 350,90 T400,95 Q425,110 450,105 T500,100 Q525,85 550,90 T600,95 Q625,75 650,80 T700,85 Q725,95 750,100 T800,105 Q825,90 850,95 T900,100 Q925,110 950,105 T1000,100 L1000,100 Q975,90 950,95 T900,100 Q875,110 850,105 T800,100 Q775,105 750,100 T700,95 Q675,120 650,115 T600,110 Q575,115 550,110 T500,105 Q475,95 450,100 T400,105 Q375,110 350,105 T300,100 Q275,135 250,130 T200,125 Q175,125 150,120 T100,115 Q75,120 50,115 T0,110 Z"/>
@@ -1045,8 +1184,16 @@
                     <path class="waveform-path" stroke="url(#waveGradient)" d="M0,100 Q25,120 50,115 T100,110 Q125,130 150,125 T200,120 Q225,140 250,135 T300,130 Q325,115 350,110 T400,105 Q425,90 450,95 T500,100 Q525,115 550,110 T600,105 Q625,125 650,120 T700,115 Q725,105 750,100 T800,95 Q825,110 850,105 T900,100 Q925,90 950,95 T1000,100"/>
                 </svg>
 
-                <!-- Playhead -->
+                <!-- Playhead with animated SVG -->
                 <div class="playhead"></div>
+
+                <!-- SMIL Animated Playhead (always visible) -->
+                <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                    <line x1="0" y1="0" x2="0" y2="100%" stroke="var(--danger)" stroke-width="2" opacity="0.7">
+                        <animate attributeName="x1" from="0" to="1000" dur="10s" repeatCount="indefinite"/>
+                        <animate attributeName="x2" from="0" to="1000" dur="10s" repeatCount="indefinite"/>
+                    </line>
+                </svg>
 
                 <!-- Timeline Ruler -->
                 <div class="timeline-ruler">
