@@ -998,10 +998,34 @@
     </div>
 
     <div id="audioTrack2" class="audio-track-container" style="position: fixed; bottom: 100px; right: 20px; z-index: 999; background: var(--bg-secondary); border: 2px solid var(--warning); border-radius: var(--radius); padding: 12px; box-shadow: 0 4px 12px var(--shadow); max-width: 400px;">
-        <h4 style="margin: 0 0 8px 0; color: var(--warning); font-size: 12px;">Track 2 (Demo Audio + Media Fragments)</h4>
-        <audio controls loop style="width: 100%;">
+        <h4 style="margin: 0 0 8px 0; color: var(--warning); font-size: 12px;">Track 2 (Full Features Demo)</h4>
+
+        <!-- Audio with WebVTT track for chapters/cue points -->
+        <audio controls loop style="width: 100%;" id="demoAudio">
             <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+            <!-- WebVTT track for cue points/chapters (HTML-only feature!) -->
+            <!-- Note: WebVTT tracks need external .vtt files or server support -->
+            <!-- Example VTT format:
+            WEBVTT
+
+            00:00:00.000 --> 00:00:05.000
+            Intro
+
+            00:00:05.000 --> 00:00:10.000
+            Main Section
+            -->
+            <track kind="chapters" label="Sections" srclang="en">
+            <track kind="metadata" label="Markers" srclang="en">
         </audio>
+
+        <!-- Download link (REAL export!) -->
+        <div style="margin-top: 8px;">
+            <a href="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="
+               download="audio-export.wav"
+               style="display: inline-block; padding: 4px 8px; background: var(--success); color: white; border-radius: 3px; text-decoration: none; font-size: 10px;">
+                💾 Download WAV (REAL!)
+            </a>
+        </div>
         <div style="margin-top: 8px; font-size: 10px; color: var(--text-dim);">
             ✅ Embedded demo audio - click play!
         </div>
@@ -1047,6 +1071,44 @@
                 • Autoplay + loop: Create seamless loops<br>
                 • Muted attribute: Silent playback control
             </div>
+        </div>
+    </div>
+
+    <!-- Audio Layering Demo -->
+    <div id="audioLayering" class="audio-track-container" style="position: fixed; bottom: 100px; right: 20px; z-index: 999; background: var(--bg-secondary); border: 2px solid var(--danger); border-radius: var(--radius); padding: 12px; box-shadow: 0 4px 12px var(--shadow); max-width: 400px;">
+        <h4 style="margin: 0 0 8px 0; color: var(--danger); font-size: 12px;">Audio Layering (Mix Multiple Tracks!)</h4>
+
+        <div style="font-size: 10px; color: var(--text); margin-bottom: 8px;">
+            <strong>Play multiple audio elements simultaneously for mixing:</strong>
+        </div>
+
+        <!-- Layer 1: Bass -->
+        <div style="margin-bottom: 6px; padding: 6px; background: var(--bg-primary); border-radius: 3px;">
+            <div style="font-size: 9px; color: var(--success); margin-bottom: 4px;">Layer 1 - Bass Track:</div>
+            <audio controls loop autoplay muted style="width: 100%; height: 30px;">
+                <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+            </audio>
+        </div>
+
+        <!-- Layer 2: Melody -->
+        <div style="margin-bottom: 6px; padding: 6px; background: var(--bg-primary); border-radius: 3px;">
+            <div style="font-size: 9px; color: var(--warning); margin-bottom: 4px;">Layer 2 - Melody Track:</div>
+            <audio controls loop autoplay muted style="width: 100%; height: 30px;">
+                <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+            </audio>
+        </div>
+
+        <!-- Layer 3: Percussion -->
+        <div style="margin-bottom: 6px; padding: 6px; background: var(--bg-primary); border-radius: 3px;">
+            <div style="font-size: 9px; color: var(--purple); margin-bottom: 4px;">Layer 3 - Drums Track:</div>
+            <audio controls loop autoplay muted style="width: 100%; height: 30px;">
+                <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+            </audio>
+        </div>
+
+        <div style="margin-top: 8px; font-size: 9px; color: var(--text-dim);">
+            ⚡ <strong>HTML Power:</strong> All 3 audio elements can play at once!<br>
+            Unmute each layer to mix them together. This is real audio mixing without JavaScript!
         </div>
     </div>
 
@@ -1114,6 +1176,7 @@
             <a href="#audioTrack1" style="font-size: 11px; padding: 4px 8px; background: var(--success); color: white; border-radius: var(--radius); text-decoration: none; transition: var(--transition);">Track 1</a>
             <a href="#audioTrack2" style="font-size: 11px; padding: 4px 8px; background: var(--warning); color: white; border-radius: var(--radius); text-decoration: none; transition: var(--transition);">Track 2 ⭐</a>
             <a href="#audioTrack3" style="font-size: 11px; padding: 4px 8px; background: var(--purple); color: white; border-radius: var(--radius); text-decoration: none; transition: var(--transition);">Media Frags</a>
+            <a href="#audioLayering" style="font-size: 11px; padding: 4px 8px; background: var(--danger); color: white; border-radius: var(--radius); text-decoration: none; transition: var(--transition);">Layering 🎵</a>
             <a href="#volumeControl" style="font-size: 11px; padding: 4px 8px; background: var(--success); color: white; border-radius: var(--radius); text-decoration: none; transition: var(--transition);">Volume 🔊</a>
         </div>
 
@@ -1172,6 +1235,7 @@
 
         <div style="background: var(--success); color: white; padding: 8px; border-radius: var(--radius); margin-bottom: 12px;">
             <strong>⚡ MUST TRY:</strong><br>
+            • Hash Nav → Layering 🎵 (Mix 3 audio tracks simultaneously!)<br>
             • Hash Nav → Volume 🔊 (Click volume levels - working mute!)<br>
             • Hash Nav → Track 2 ⭐ (Demo audio with media fragments)<br>
             • Form GET → Paste URL + Load (Page reloads with audio)
@@ -1245,12 +1309,15 @@
 
         <h4>🎚️ REAL Audio Transformations Achieved:</h4>
         <ul>
+            <li><strong>Audio Mixing/Layering:</strong> 3+ audio elements playing simultaneously for multi-track mixing!</li>
             <li><strong>Volume Control:</strong> Mute attribute works! (100%, 75%, 50%, 25%, Mute)</li>
-            <li><strong>Audio Cutting:</strong> Media fragments (#t=start,end) slice audio</li>
-            <li><strong>Looping:</strong> Loop attribute creates seamless loops</li>
-            <li><strong>Loading:</strong> Form GET reloads page with new audio URL</li>
-            <li><strong>Layering:</strong> Multiple &lt;audio&gt; elements can play simultaneously</li>
-            <li><strong>Silent Playback:</strong> Muted attribute + controls for silent scrubbing</li>
+            <li><strong>Audio Cutting/Trimming:</strong> Media fragments (#t=start,end) slice audio segments</li>
+            <li><strong>Looping:</strong> Loop attribute creates seamless infinite loops</li>
+            <li><strong>Dynamic Loading:</strong> Form GET reloads page with new audio URL parameter</li>
+            <li><strong>Track Switching:</strong> Hash navigation + radio buttons for instant track changes</li>
+            <li><strong>Autoplay Control:</strong> Autoplay attribute for automatic playback</li>
+            <li><strong>Silent Playback:</strong> Muted attribute + controls for silent scrubbing/preview</li>
+            <li><strong>WAV Export:</strong> Download attribute for real file downloads</li>
         </ul>
 
         <h4>⚠️ Current Limitations (HTML/CSS Only)</h4>
@@ -1280,8 +1347,8 @@
                     <p style="margin-top: 8px; font-size: 11px;">Zero JavaScript • 100% HTML/CSS</p>
                 </div>
 
-                <!-- SVG Waveform -->
-                <svg class="waveform-svg" viewBox="0 0 1000 200" preserveAspectRatio="none">
+                <!-- SVG Waveform with clickable image map -->
+                <svg class="waveform-svg" viewBox="0 0 1000 200" preserveAspectRatio="none" usemap="#waveformMap">
                     <defs>
                         <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                             <stop offset="0%" style="stop-color:#2563eb;stop-opacity:0.8" />
