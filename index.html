@@ -660,13 +660,141 @@
             align-items: center;
         }
 
-        /* Hide default audio controls */
-        audio::-webkit-media-controls {
-            display: none !important;
+        /* Audio Container & Player Switching */
+        .audio-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--bg-secondary);
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            padding: 8px;
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
-        audio {
+        .audio-player {
             display: none;
+        }
+
+        /* Show active audio track based on radio selection */
+        #track1:checked ~ .audio-container #audio1,
+        #track2:checked ~ .audio-container #audio2,
+        #track3:checked ~ .audio-container #audio3,
+        #customTrack:checked ~ .audio-container #audio4 {
+            display: block;
+        }
+
+        /* Track selector styling */
+        .track-selector {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .track-selector label {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        /* Highlight active track label */
+        #track1:checked ~ .toolbar .track-selector label[for="track1"],
+        #track2:checked ~ .toolbar .track-selector label[for="track2"],
+        #track3:checked ~ .toolbar .track-selector label[for="track3"],
+        #customTrack:checked ~ .toolbar .track-selector label[for="customTrack"] {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .track-selector label:hover {
+            background: #4a4a4a;
+        }
+
+        /* URL Input Panel */
+        .url-input-panel {
+            background: var(--bg-tertiary);
+            padding: 8px;
+            border-radius: var(--radius);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .url-input-panel input[type="url"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 6px 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-size: 12px;
+        }
+
+        .url-input-panel input[type="url"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Instructions Panel */
+        .instructions-panel {
+            display: none;
+            background: var(--bg-secondary);
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        #showInstructions:checked ~ .instructions-panel {
+            display: block;
+        }
+
+        .instructions-panel h3 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .instructions-panel h4 {
+            color: var(--text);
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .instructions-panel ol, .instructions-panel ul {
+            margin-left: 24px;
+            line-height: 1.8;
+        }
+
+        .instructions-panel code {
+            background: var(--bg-primary);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--primary);
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .instructions-panel .close-btn {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: color var(--transition);
+        }
+
+        .instructions-panel .close-btn:hover {
+            color: var(--danger);
         }
 
         /* ===== Loading State ===== */
@@ -736,20 +864,66 @@
     <input type="checkbox" id="delayToggle" class="state-toggle">
     <input type="checkbox" id="compressorToggle" class="state-toggle">
 
-    <!-- Hidden Audio Element with Native Controls -->
-    <!-- Note: File input requires JavaScript to load files into audio element -->
-    <!-- For demo purposes, you can add a src attribute with an audio file URL -->
-    <audio id="audioElement" preload="auto" controls style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; opacity: 0.8;">
-        <!-- Add your audio source here: <source src="your-audio-file.wav" type="audio/wav"> -->
-    </audio>
+    <!-- Audio Track Selection (Radio-based switching) -->
+    <input type="radio" name="audioTrack" id="track1" class="state-toggle" checked>
+    <input type="radio" name="audioTrack" id="track2" class="state-toggle">
+    <input type="radio" name="audioTrack" id="track3" class="state-toggle">
+    <input type="radio" name="audioTrack" id="customTrack" class="state-toggle">
+
+    <!-- Instructions Panel Toggle -->
+    <input type="checkbox" id="showInstructions" class="state-toggle">
+
+    <!-- Multiple Audio Elements (switched via radio buttons) -->
+    <div class="audio-container">
+        <!-- Track 1: User's custom audio -->
+        <audio id="audio1" class="audio-player" preload="auto" controls loop>
+            <!-- EDIT THIS LINE: Add your audio file URL or local path -->
+            <!-- Example: <source src="your-audio-file.wav" type="audio/wav"> -->
+            <!-- Example: <source src="https://example.com/audio.mp3" type="audio/mpeg"> -->
+        </audio>
+
+        <!-- Track 2: Demo audio (sine wave tone) -->
+        <audio id="audio2" class="audio-player" preload="auto" controls loop>
+            <!-- Using data URL for a simple audio tone -->
+            <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+        </audio>
+
+        <!-- Track 3: Placeholder for second custom audio -->
+        <audio id="audio3" class="audio-player" preload="auto" controls loop>
+            <!-- EDIT THIS LINE: Add second audio file -->
+        </audio>
+
+        <!-- Custom URL audio -->
+        <audio id="audio4" class="audio-player" preload="auto" controls loop>
+            <!-- This will be set via the URL input below -->
+        </audio>
+    </div>
 
     <!-- Toolbar -->
     <div class="toolbar">
         <div class="toolbar-group">
-            <label for="fileInput" class="button primary">
-                📁 Open File
-            </label>
-            <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.ogg,.m4a">
+            <span class="toolbar-label">Audio Source</span>
+            <div class="track-selector">
+                <label for="track1">Track 1</label>
+                <label for="track2">Track 2</label>
+                <label for="track3">Track 3</label>
+                <label for="customTrack">Custom</label>
+            </div>
+        </div>
+
+        <div class="toolbar-group">
+            <span class="toolbar-label">Load URL</span>
+            <input type="url"
+                   placeholder="Paste audio URL here..."
+                   list="audioUrls"
+                   style="padding: 6px 10px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 12px; min-width: 250px;">
+            <datalist id="audioUrls">
+                <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+                <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3">
+                <option value="your-local-file.wav">
+                <option value="your-audio.mp3">
+            </datalist>
+            <label for="showInstructions" class="button" style="font-size: 11px; cursor: pointer;">ℹ️ How to Load</label>
         </div>
 
         <div class="toolbar-group">
@@ -776,6 +950,68 @@
         <div class="toolbar-group">
             <button class="primary">💾 Export WAV</button>
         </div>
+    </div>
+
+    <!-- Instructions Panel (toggleable) -->
+    <div class="instructions-panel">
+        <label for="showInstructions" class="close-btn">&times;</label>
+        <h3>📖 How to Load Audio Files (No JavaScript Required)</h3>
+
+        <h4>Method 1: Edit HTML Directly (Recommended)</h4>
+        <ol>
+            <li>Right-click this page → "View Page Source" or "Inspect Element"</li>
+            <li>Find the <code>&lt;audio&gt;</code> elements (lines 820-837)</li>
+            <li>Add your audio file inside a <code>&lt;source&gt;</code> tag:</li>
+        </ol>
+        <pre style="background: var(--bg-primary); padding: 12px; border-radius: var(--radius); margin: 8px 0; overflow-x: auto;"><code>&lt;audio id="audio1" class="audio-player" preload="auto" controls loop&gt;
+    &lt;source src="your-file.wav" type="audio/wav"&gt;
+    &lt;source src="your-file.mp3" type="audio/mpeg"&gt;
+&lt;/audio&gt;</code></pre>
+
+        <h4>Method 2: Use Direct URLs</h4>
+        <ul>
+            <li>Host your audio file online (Dropbox, Google Drive, your server)</li>
+            <li>Get the direct URL to the file</li>
+            <li>Add it to the HTML as shown in Method 1</li>
+            <li>Example URLs are provided in the URL input datalist</li>
+        </ul>
+
+        <h4>Method 3: Local File Path (Desktop Only)</h4>
+        <ul>
+            <li>Save this HTML file to your computer</li>
+            <li>Place your audio files in the same folder</li>
+            <li>Edit the HTML: <code>&lt;source src="myaudio.wav"&gt;</code></li>
+            <li>Open the HTML file in your browser</li>
+        </ul>
+
+        <h4>Method 4: Data URL (Small Files Only)</h4>
+        <ul>
+            <li>Convert your audio to base64 data URL</li>
+            <li>Use: <code>src="data:audio/wav;base64,YOUR_BASE64_HERE"</code></li>
+            <li>Track 2 uses this method with a simple sine wave tone</li>
+        </ul>
+
+        <h4>🎵 Switching Between Tracks</h4>
+        <ul>
+            <li>Use the "Audio Source" buttons in the toolbar</li>
+            <li>Track 1-3: Your custom audio files</li>
+            <li>Track 2: Demo audio (sine wave)</li>
+            <li>The active audio player appears in the bottom-right corner</li>
+        </ul>
+
+        <h4>⚠️ Current Limitations (HTML/CSS Only)</h4>
+        <ul>
+            <li>File picker button doesn't work (requires JavaScript)</li>
+            <li>URL input is informational only (requires JavaScript to load)</li>
+            <li>Volume/playback controls are UI only (use native audio controls)</li>
+            <li>Effects are visual CSS filters, not actual audio processing</li>
+            <li>You must manually edit HTML to load your own audio files</li>
+        </ul>
+
+        <p style="margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: var(--radius); border-left: 3px solid var(--primary);">
+            <strong>💡 Tip:</strong> This demo shows the maximum capability of pure HTML/CSS. For full functionality,
+            JavaScript would be needed to load files dynamically, process audio, and control playback programmatically.
+        </p>
     </div>
 
     <!-- Main Content Area -->
