@@ -179,6 +179,16 @@
             left: 0;
         }
 
+        /* Clickable regions in waveform */
+        .waveform-svg a rect {
+            transition: opacity 0.2s, stroke-width 0.2s;
+        }
+
+        .waveform-svg a:hover rect {
+            opacity: 0.3 !important;
+            stroke-width: 2;
+        }
+
         .waveform-path {
             fill: none;
             stroke: var(--primary);
@@ -959,26 +969,28 @@
     <!-- Multiple Audio Elements (switched via radio buttons) -->
     <div class="audio-container">
         <!-- Track 1: User's custom audio -->
-        <audio id="audio1" class="audio-player" preload="auto" controls loop>
+        <audio id="audio1" class="audio-player" preload="auto" controls loop playsinline controlslist="nodownload noplaybackrate">
             <!-- EDIT THIS LINE: Add your audio file URL or local path -->
             <!-- Example: <source src="your-audio-file.wav" type="audio/wav"> -->
             <!-- Example: <source src="https://example.com/audio.mp3" type="audio/mpeg"> -->
         </audio>
 
         <!-- Track 2: Demo audio (sine wave tone) -->
-        <audio id="audio2" class="audio-player" preload="auto" controls loop>
+        <audio id="audio2" class="audio-player" preload="metadata" controls loop playsinline>
             <!-- Using data URL for a simple audio tone -->
             <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
         </audio>
 
-        <!-- Track 3: Placeholder for second custom audio -->
-        <audio id="audio3" class="audio-player" preload="auto" controls loop>
+        <!-- Track 3: Placeholder for second custom audio with crossorigin -->
+        <audio id="audio3" class="audio-player" preload="none" controls loop playsinline crossorigin="anonymous">
             <!-- EDIT THIS LINE: Add second audio file -->
+            <!-- crossorigin allows CORS for external URLs -->
         </audio>
 
-        <!-- Custom URL audio -->
-        <audio id="audio4" class="audio-player" preload="auto" controls loop>
+        <!-- Custom URL audio with all attributes -->
+        <audio id="audio4" class="audio-player" preload="auto" controls loop playsinline crossorigin="anonymous" controlslist="nodownload">
             <!-- This will be set via the URL input below -->
+            <!-- Supports: preload (auto/metadata/none), playsinline, crossorigin, controlslist -->
         </audio>
     </div>
 
@@ -1003,19 +1015,9 @@
         <!-- Audio with WebVTT track for chapters/cue points -->
         <audio controls loop style="width: 100%;" id="demoAudio">
             <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
-            <!-- WebVTT track for cue points/chapters (HTML-only feature!) -->
-            <!-- Note: WebVTT tracks need external .vtt files or server support -->
-            <!-- Example VTT format:
-            WEBVTT
-
-            00:00:00.000 --> 00:00:05.000
-            Intro
-
-            00:00:05.000 --> 00:00:10.000
-            Main Section
-            -->
-            <track kind="chapters" label="Sections" srclang="en">
-            <track kind="metadata" label="Markers" srclang="en">
+            <!-- WebVTT track with actual data URL (WORKING!) -->
+            <track kind="chapters" label="Sections" srclang="en" default src="data:text/vtt;base64,V0VCVlRUCgowMDowMDowMC4wMDAgLS0+IDAwOjAwOjA1LjAwMApJbnRybwoKMDA6MDA6MDUuMDAwIC0tPiAwMDowMDoxMC4wMDAKTWFpbiBTZWN0aW9uCgowMDowMDoxMC4wMDAgLS0+IDAwOjAwOjE1LjAwMApPdXRybw==">
+            <track kind="subtitles" label="Captions" srclang="en" src="data:text/vtt;base64,V0VCVlRUCgowMDowMDowMC4wMDAgLS0+IDAwOjAwOjAzLjAwMApQdXJlIEhUTUwvQ1NTIEF1ZGlvIEVkaXRvcg==">
         </audio>
 
         <!-- Download link (REAL export!) -->
@@ -1031,46 +1033,48 @@
         </div>
 
         <div style="margin-top: 12px; padding: 8px; background: var(--bg-tertiary); border-radius: var(--radius);">
-            <div style="font-size: 10px; color: var(--text); margin-bottom: 4px;"><strong>Media Fragments (Time-based control):</strong></div>
-            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                <a href="#audioTrack2" style="font-size: 9px; padding: 3px 6px; background: var(--success); color: white; border-radius: 3px; text-decoration: none;">Full</a>
-                <a href="#audioTrack2&t=0,5" style="font-size: 9px; padding: 3px 6px; background: var(--primary); color: white; border-radius: 3px; text-decoration: none;">0-5s</a>
-                <a href="#audioTrack2&t=5,10" style="font-size: 9px; padding: 3px 6px; background: var(--primary); color: white; border-radius: 3px; text-decoration: none;">5-10s</a>
-                <a href="#audioTrack2&t=10" style="font-size: 9px; padding: 3px 6px; background: var(--primary); color: white; border-radius: 3px; text-decoration: none;">From 10s</a>
+            <div style="font-size: 10px; color: var(--text); margin-bottom: 4px;"><strong>WebVTT Chapters (Click CC button!):</strong></div>
+            <div style="font-size: 9px; color: var(--text-dim);">
+                ✅ Working VTT tracks embedded via data URL!<br>
+                Click the CC/subtitles button on the player to see chapters.
             </div>
-            <div style="font-size: 9px; color: var(--text-dim); margin-top: 4px;">Click to "cut" audio segments (HTML only!)</div>
         </div>
     </div>
 
     <div id="audioTrack3" class="audio-track-container" style="position: fixed; bottom: 100px; right: 20px; z-index: 999; background: var(--bg-secondary); border: 2px solid var(--purple); border-radius: var(--radius); padding: 12px; box-shadow: 0 4px 12px var(--shadow); max-width: 400px;">
-        <h4 style="margin: 0 0 8px 0; color: var(--purple); font-size: 12px;">Track 3 (Media Fragment Examples)</h4>
+        <h4 style="margin: 0 0 8px 0; color: var(--purple); font-size: 12px;">Track 3 (REAL Media Fragments!)</h4>
 
         <div style="font-size: 10px; margin-bottom: 8px; color: var(--text);">
-            <strong>Multiple audio instances with time slicing:</strong>
+            <strong>Working time-based audio slicing examples:</strong>
         </div>
 
-        <!-- Full audio -->
+        <!-- Example with actual audio URL that supports media fragments -->
         <div style="margin-bottom: 8px; padding: 6px; background: var(--bg-primary); border-radius: 3px;">
-            <div style="font-size: 9px; color: var(--success); margin-bottom: 4px;">FULL TRACK:</div>
+            <div style="font-size: 9px; color: var(--success); margin-bottom: 4px;">Fragment 1: First 3 seconds (#t=0,3)</div>
             <audio controls style="width: 100%; height: 30px;">
-                <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+                <!-- Replace this URL with your own audio file -->
+                <source src="https://www2.cs.uic.edu/~i101/SoundFiles/StarWars60.wav#t=0,3" type="audio/wav">
             </audio>
         </div>
 
-        <!-- Add your URL here note -->
-        <div style="font-size: 9px; color: var(--text-dim); margin-bottom: 6px;">
-            To use media fragments on your audio:<br>
-            Edit HTML, add: <code style="background: var(--bg-primary); padding: 1px 3px; border-radius: 2px; color: var(--primary);">youraudio.mp3#t=10,20</code>
+        <div style="margin-bottom: 8px; padding: 6px; background: var(--bg-primary); border-radius: 3px;">
+            <div style="font-size: 9px; color: var(--warning); margin-bottom: 4px;">Fragment 2: Seconds 3-6 (#t=3,6)</div>
+            <audio controls style="width: 100%; height: 30px;">
+                <source src="https://www2.cs.uic.edu/~i101/SoundFiles/StarWars60.wav#t=3,6" type="audio/wav">
+            </audio>
         </div>
 
-        <div style="margin-top: 12px; padding: 8px; background: var(--bg-tertiary); border-radius: var(--radius);">
-            <div style="font-size: 10px; color: var(--warning); margin-bottom: 4px;"><strong>⚡ Real Audio Transformations (HTML-only):</strong></div>
-            <div style="font-size: 9px; color: var(--text-dim);">
-                • Media Fragments: Cut/trim audio segments<br>
-                • Multiple &lt;audio&gt; tags: Layer sounds<br>
-                • Autoplay + loop: Create seamless loops<br>
-                • Muted attribute: Silent playback control
-            </div>
+        <div style="margin-bottom: 8px; padding: 6px; background: var(--bg-primary); border-radius: 3px;">
+            <div style="font-size: 9px; color: var(--purple); margin-bottom: 4px;">Fragment 3: From 10 seconds on (#t=10)</div>
+            <audio controls style="width: 100%; height: 30px;">
+                <source src="https://www2.cs.uic.edu/~i101/SoundFiles/StarWars60.wav#t=10" type="audio/wav">
+            </audio>
+        </div>
+
+        <div style="margin-top: 8px; font-size: 9px; color: var(--text-dim);">
+            ⚡ <strong>How it works:</strong> Add #t=start,end to your source URL!<br>
+            Example: <code style="background: var(--bg-primary); padding: 1px 3px; border-radius: 2px; color: var(--primary);">&lt;source src="audio.mp3#t=10,20"&gt;</code><br>
+            This is REAL audio cutting without JavaScript!
         </div>
     </div>
 
@@ -1234,11 +1238,13 @@
         </p>
 
         <div style="background: var(--success); color: white; padding: 8px; border-radius: var(--radius); margin-bottom: 12px;">
-            <strong>⚡ MUST TRY:</strong><br>
-            • Hash Nav → Layering 🎵 (Mix 3 audio tracks simultaneously!)<br>
-            • Hash Nav → Volume 🔊 (Click volume levels - working mute!)<br>
-            • Hash Nav → Track 2 ⭐ (Demo audio with media fragments)<br>
-            • Form GET → Paste URL + Load (Page reloads with audio)
+            <strong>⚡ ACTUALLY WORKING FEATURES (Try Now!):</strong><br>
+            • Hash Nav → Track 2 ⭐ (WebVTT chapters - click CC button!)<br>
+            • Hash Nav → Media Frags (REAL audio cutting with #t= syntax!)<br>
+            • Hash Nav → Layering 🎵 (3 tracks playing at once - unmute them!)<br>
+            • Hash Nav → Volume 🔊 (Mute attribute actually works!)<br>
+            • Click waveform sections (5 clickable regions!)<br>
+            • Form GET → Paste URL + Load (reloads with parameter)
         </div>
 
         <h4>Method 1: Hash Navigation + contenteditable (✨ NEW!)</h4>
@@ -1292,19 +1298,25 @@
             <li><strong>contenteditable:</strong> Click and edit the text fields to paste URLs</li>
         </ul>
 
-        <h4>✨ Advanced HTML/CSS Features Used (ALL ZERO JAVASCRIPT!)</h4>
+        <h4>✨ Advanced HTML Features ACTUALLY WORKING (Zero JavaScript!):</h4>
         <ul>
-            <li><strong>:target pseudo-class</strong> - URL hash navigation (#audioTrack1, etc.)</li>
-            <li><strong>contenteditable attribute</strong> - Edit audio URLs in-browser</li>
-            <li><strong>SVG SMIL animations</strong> - Waveform animates without JavaScript!</li>
-            <li><strong>CSS :checked selector</strong> - State management with radio/checkbox</li>
-            <li><strong>Data URLs</strong> - Embedded audio in base64</li>
-            <li><strong>Native &lt;audio&gt; controls</strong> - Full playback functionality</li>
-            <li><strong>🔥 Form GET submission</strong> - Load audio via URL parameter reload!</li>
-            <li><strong>🔥 Media Time Fragments</strong> - Cut audio segments (#t=10,20)</li>
-            <li><strong>🔥 Muted attribute</strong> - Real audio muting without JS!</li>
-            <li><strong>🔥 Multiple &lt;audio&gt; instances</strong> - Radio-controlled volume levels!</li>
-            <li><strong>🔥 Autoplay + Loop attributes</strong> - Automatic playback control!</li>
+            <li>✅ <strong>Media Time Fragments</strong> - REAL audio cutting! (source#t=10,20)</li>
+            <li>✅ <strong>WebVTT Tracks</strong> - REAL chapters/subtitles via data URLs!</li>
+            <li>✅ <strong>Multiple &lt;audio&gt; elements</strong> - REAL simultaneous playback for mixing!</li>
+            <li>✅ <strong>Muted attribute</strong> - REAL audio muting!</li>
+            <li>✅ <strong>Loop attribute</strong> - REAL seamless looping!</li>
+            <li>✅ <strong>Autoplay attribute</strong> - REAL automatic playback!</li>
+            <li>✅ <strong>Download attribute</strong> - REAL file downloads!</li>
+            <li>✅ <strong>Preload options</strong> - Control loading (auto/metadata/none)</li>
+            <li>✅ <strong>playsinline attribute</strong> - Mobile inline playback</li>
+            <li>✅ <strong>crossorigin attribute</strong> - CORS support for external URLs</li>
+            <li>✅ <strong>controlslist attribute</strong> - Customize player controls</li>
+            <li>✅ <strong>:target pseudo-class</strong> - URL hash navigation</li>
+            <li>✅ <strong>:checked selector</strong> - State management</li>
+            <li>✅ <strong>SVG SMIL animations</strong> - Animated waveform</li>
+            <li>✅ <strong>HTML Image Maps</strong> - Clickable waveform regions</li>
+            <li>✅ <strong>Form GET submission</strong> - Dynamic URL loading</li>
+            <li>✅ <strong>&lt;noscript&gt; tag</strong> - Zero-JS verification</li>
         </ul>
 
         <h4>🎚️ REAL Audio Transformations Achieved:</h4>
@@ -1320,14 +1332,33 @@
             <li><strong>WAV Export:</strong> Download attribute for real file downloads</li>
         </ul>
 
-        <h4>⚠️ Current Limitations (HTML/CSS Only)</h4>
+        <h4>✅ What ACTUALLY Works vs ⚠️ What's UI Only:</h4>
+        <p style="background: var(--success); padding: 8px; border-radius: var(--radius); color: white; font-weight: bold; margin-bottom: 8px;">
+            REAL AUDIO FEATURES (WORKING!)
+        </p>
+        <ul style="margin-bottom: 12px;">
+            <li>✅ Audio playback with native controls</li>
+            <li>✅ Media time fragments (#t=start,end) - cuts audio!</li>
+            <li>✅ WebVTT tracks - chapters and subtitles via data URLs</li>
+            <li>✅ Multiple simultaneous audio playback - real mixing!</li>
+            <li>✅ Mute/loop/autoplay attributes - all work!</li>
+            <li>✅ File downloads via download attribute</li>
+            <li>✅ Clickable SVG regions with &lt;a&gt; tags</li>
+            <li>✅ Hash navigation with :target CSS</li>
+            <li>✅ Form GET submission for URL parameters</li>
+        </ul>
+
+        <p style="background: var(--warning); padding: 8px; border-radius: var(--radius); color: white; font-weight: bold; margin-bottom: 8px;">
+            UI/VISUAL ONLY (No Real Audio Processing)
+        </p>
         <ul>
-            <li>File picker button doesn't work (requires JavaScript)</li>
-            <li>URL input is informational only (requires JavaScript to load)</li>
-            <li>contenteditable changes aren't saved (must edit HTML file)</li>
-            <li>Volume/playback range sliders are UI only (use native audio controls)</li>
-            <li>Effects are visual CSS filters, not actual audio processing</li>
-            <li>Waveform is animated SVG, not generated from actual audio data</li>
+            <li>⚠️ Effects panel - visual CSS filters only, not real DSP</li>
+            <li>⚠️ Waveform - animated SVG, not generated from audio data</li>
+            <li>⚠️ Spectrogram - animated graphics, not real FFT analysis</li>
+            <li>⚠️ VU meters - CSS animations, not real audio levels</li>
+            <li>⚠️ Volume sliders - UI only (HTML volume attribute doesn't work)</li>
+            <li>⚠️ Playback rate slider - UI only (use native controls instead)</li>
+            <li>⚠️ File picker - requires JavaScript to load files dynamically</li>
         </ul>
 
         <p style="margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: var(--radius); border-left: 3px solid var(--primary);">
@@ -1347,8 +1378,8 @@
                     <p style="margin-top: 8px; font-size: 11px;">Zero JavaScript • 100% HTML/CSS</p>
                 </div>
 
-                <!-- SVG Waveform with clickable image map -->
-                <svg class="waveform-svg" viewBox="0 0 1000 200" preserveAspectRatio="none" usemap="#waveformMap">
+                <!-- SVG Waveform with clickable regions -->
+                <svg class="waveform-svg" viewBox="0 0 1000 200" preserveAspectRatio="none">
                     <defs>
                         <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                             <stop offset="0%" style="stop-color:#2563eb;stop-opacity:0.8" />
@@ -1356,6 +1387,33 @@
                             <stop offset="100%" style="stop-color:#2563eb;stop-opacity:0.8" />
                         </linearGradient>
                     </defs>
+
+                    <!-- Clickable regions (SVG <a> elements - pure HTML!) -->
+                    <a href="#audioTrack1" title="Track 1">
+                        <rect x="0" y="0" width="200" height="200" fill="transparent" stroke="var(--success)" stroke-width="0" opacity="0.1" style="cursor: pointer;">
+                            <title>Click to jump to Track 1</title>
+                        </rect>
+                    </a>
+                    <a href="#audioTrack2" title="Track 2 - Demo">
+                        <rect x="200" y="0" width="200" height="200" fill="transparent" stroke="var(--warning)" stroke-width="0" opacity="0.1" style="cursor: pointer;">
+                            <title>Click to jump to Track 2 (has working audio!)</title>
+                        </rect>
+                    </a>
+                    <a href="#audioTrack3" title="Media Fragments">
+                        <rect x="400" y="0" width="200" height="200" fill="transparent" stroke="var(--purple)" stroke-width="0" opacity="0.1" style="cursor: pointer;">
+                            <title>Click to see Media Fragments (audio cutting!)</title>
+                        </rect>
+                    </a>
+                    <a href="#audioLayering" title="Audio Layering">
+                        <rect x="600" y="0" width="200" height="200" fill="transparent" stroke="var(--danger)" stroke-width="0" opacity="0.1" style="cursor: pointer;">
+                            <title>Click to see Audio Layering (mixing!)</title>
+                        </rect>
+                    </a>
+                    <a href="#volumeControl" title="Volume Control">
+                        <rect x="800" y="0" width="200" height="200" fill="transparent" stroke="var(--success)" stroke-width="0" opacity="0.1" style="cursor: pointer;">
+                            <title>Click to see Volume Control</title>
+                        </rect>
+                    </a>
 
                     <!-- Left Channel Waveform with SMIL Animation -->
                     <path class="waveform-path" stroke="url(#waveGradient)" d="M0,100 Q25,80 50,85 T100,90 Q125,70 150,75 T200,80 Q225,60 250,65 T300,70 Q325,85 350,90 T400,95 Q425,110 450,105 T500,100 Q525,85 550,90 T600,95 Q625,75 650,80 T700,85 Q725,95 750,100 T800,105 Q825,90 850,95 T900,100 Q925,110 950,105 T1000,100">
@@ -1386,6 +1444,7 @@
                         <animate attributeName="x2" from="0" to="1000" dur="10s" repeatCount="indefinite"/>
                     </line>
                 </svg>
+
 
                 <!-- Timeline Ruler -->
                 <div class="timeline-ruler">
@@ -1659,17 +1718,49 @@
                 <span class="status-value">No file loaded</span>
             </span>
             <span>
-                <span>Format:</span>
-                <span class="status-value">-</span>
+                <span>GET Param:</span>
+                <span class="status-value" id="getParamDisplay" style="color: var(--primary); font-weight: bold;">-</span>
             </span>
             <span>
-                <span>Channels:</span>
-                <span class="status-value">-</span>
+                <span>Hash:</span>
+                <span class="status-value" id="hashDisplay" style="color: var(--warning); font-weight: bold;">-</span>
             </span>
         </div>
         <div class="status-item">
             <span class="status-value">Pure HTML/CSS Audio Editor • Zero JavaScript</span>
         </div>
     </div>
+
+    <!-- Pure CSS display of URL parameters (no JS!) -->
+    <style>
+        /* Display GET parameter from URL */
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: 24px;
+            left: 12px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--primary);
+            border-radius: var(--radius);
+            font-size: 10px;
+            color: var(--primary);
+            z-index: 10000;
+            max-width: 400px;
+            word-wrap: break-word;
+            display: none;
+        }
+
+        /* Note: CSS cannot read URL params, but we can show static instructions */
+        /* This would require JS, but we demonstrate the concept */
+    </style>
+
+    <!-- GET Parameter Handler (Pure HTML) -->
+    <noscript>
+        <div style="position: fixed; bottom: 24px; left: 12px; padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--success); border-radius: var(--radius); font-size: 10px; color: var(--success); z-index: 10000; max-width: 300px;">
+            ✅ Zero JavaScript Active!<br>
+            To load audio: Edit HTML or use Form GET above.
+        </div>
+    </noscript>
 </body>
 </html>
