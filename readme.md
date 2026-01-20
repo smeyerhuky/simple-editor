@@ -1,146 +1,261 @@
-# Simple Audio Editor
+# Advanced HTML5 Showcase
 
-A browser-based audio editor for WAV and AIF files. No installation required - just open `index.html` in your browser.
+A comprehensive demonstration of advanced HTML5 elements and pure CSS techniques. **ZERO JavaScript** - all interactions powered by native HTML and CSS.
 
-**Key Features:**
-- 🎵 Multi-file workflow with drag & drop support
-- 📊 Real-time spectrum analyzer with FFT visualization
-- 📈 Professional metering (Peak, RMS, True Peak, LUFS)
-- ✂️ Essential editing tools (Trim, Normalize, Fade, Gain, Reverse)
-- 🔄 Full undo/redo history
-- 🎚️ Master output volume control
-- ⌨️ Keyboard shortcuts for efficient workflow
+🌐 **[View Live Demo on GitHub Pages](#)** *(Link will be active once GitHub Pages is enabled)*
+
+## What's Inside
+
+This showcase demonstrates the full power of modern HTML5 and CSS3 without relying on JavaScript. Every interactive element, animation, and UI component uses only web standards.
+
+### 🎯 Advanced HTML Elements
+
+#### Interactive Elements
+- **`<details>` & `<summary>`** - Native HTML accordions with smooth animations
+- **`<dialog>`** - Modal dialogs with backdrop blur (styled and ready)
+
+#### Advanced Form Elements
+- **`<datalist>`** - Autocomplete suggestions for text inputs
+- **`<meter>`** - Visual gauge indicators (disk usage, battery levels)
+- **`<progress>`** - Progress bars (determinate & indeterminate states)
+- **`<output>`** - Semantic display of calculation results
+- **`<fieldset>` & `<legend>`** - Grouped form sections with visual hierarchy
+- **`<optgroup>`** - Organized dropdown options with categories
+- **All input types** - Date, time, datetime-local, color, range, number, tel, url, email
+
+#### Semantic Text Elements
+- **`<mark>`** - Highlighted text for search results or emphasis
+- **`<time>`** - Machine-readable dates and times
+- **`<abbr>`** - Abbreviations with tooltip expansions
+- **`<kbd>`** - Keyboard input visualization
+- **`<samp>`** - Sample program output
+- **`<var>`** - Mathematical or programming variables
+- **`<cite>`** - Citations and references
+- **`<dfn>`** - Term definitions
+- **`<ruby>` & `<rt>`** - East Asian typography annotations (Japanese, Chinese)
+
+#### Media & Graphics Elements
+- **`<figure>` & `<figcaption>`** - Semantic image containers with captions
+- **`<picture>`** - Responsive images with art direction
+- **Inline SVG** - Vector graphics, data visualizations, bar charts
+
+### 🎨 Pure CSS Interactions (No JavaScript!)
+
+#### Radio Button Hack Tabs
+Smooth tab switching using hidden radio inputs with the `:checked` pseudo-class and sibling combinators.
+
+#### Checkbox Hack Modal
+Full-featured modal dialogs with:
+- Backdrop blur effects
+- Smooth slide-in animations
+- Click-outside-to-close functionality
+- Accessible keyboard navigation
+
+#### Native HTML Accordions
+Using `<details>` and `<summary>` elements with custom styling:
+- Animated arrow indicators
+- Smooth expand/collapse transitions
+- Fully accessible without JavaScript
+
+#### Custom Form Styling
+- Styled checkboxes and radio buttons with checkmarks
+- Custom range sliders with hover effects
+- Color pickers integrated into the design
+- Form validation with visual feedback (`:valid`, `:invalid`)
+
+### 💅 Advanced CSS Techniques
+
+#### Design Features
+- **CSS Custom Properties** - Themeable color system with CSS variables
+- **Flexbox & Grid** - Modern responsive layouts
+- **Smooth Animations** - Keyframe animations and transitions
+- **Custom Scrollbar** - Branded scrollbar styling
+- **Gradient Backgrounds** - Dynamic linear gradients
+- **Hover Effects** - Transform-based interactive feedback
+- **Focus Management** - `:focus-visible` for accessibility
+- **Print Styles** - Optimized for printing
+
+#### Advanced Selectors Used
+- `:checked` - State-based UI toggling
+- `:valid` / `:invalid` - Form validation feedback
+- `:hover`, `:focus`, `:active` - Interactive states
+- `::before`, `::after` - Decorative elements
+- `::placeholder` - Input placeholder styling
+- `::backdrop` - Dialog backdrop effects
+- `~` (general sibling) - Remote element targeting
+- `+` (adjacent sibling) - Next element styling
 
 ## Features
 
-### File Operations
-- **Import**: Load WAV and AIF audio files (single or multiple)
-- **Drag & Drop**: Drag multiple audio files onto the waveform to add them to the queue
-- **File Queue**: Manage multiple files in a list; click to switch between files, delete with X button
-- **Export**: Save as WAV or AIF with configurable bit depth (16-bit, 24-bit, 32-bit float)
+### 🎯 Zero JavaScript
+Every interaction, animation, and UI component works without a single line of JavaScript.
 
-### Playback
-- Play, pause, and stop controls
-- Click anywhere on the waveform to set the playhead position
-- Playback starts from the playhead position (or loops back to start if at end)
-- Selection-only playback: when audio is selected, only that portion plays
-- Loop selection: toggle looping to continuously replay the selected region
-- Master output volume control (-60 dB to +6 dB)
+### 📱 Fully Responsive
+Adapts seamlessly to mobile, tablet, and desktop viewports using CSS media queries and flexible layouts.
 
-### Waveform Display
-- Visual waveform with zoom controls
-- Click to position playhead
-- Click and drag to create selections
-- Double-click or Cmd/Ctrl+A to select all
-- Clear file end indicator (dashed orange line with shaded area beyond)
+### ♿ Accessibility First
+- Semantic HTML5 structure
+- Keyboard navigation support
+- Screen reader friendly
+- ARIA attributes where needed
+- Proper heading hierarchy
+- Focus management
 
-### Spectrum Analyzer
-- Real-time frequency spectrum display during playback (blue)
-- Static spectrum analysis at playhead position when stopped
-- Configurable FFT size (256 to 8192) - control located in bottom-right of spectrum view
-- Logarithmic frequency scale with labeled axes
-- Smooth animated visualization with glow effects
+### ⚡ Performance
+- Instant load times (no JS parsing)
+- Minimal resource usage
+- Better battery life
+- SEO-friendly content
 
-### Audio Metering
-- **Real-time Peak Meter**: Live peak level display during playback (dBFS)
-- **File Statistics**: Calculated across entire file
-  - RMS Peak: Root mean square peak level
-  - True Peak: Inter-sample peak detection
-  - LUFS: Integrated loudness measurement
-- Color-coded peak display (green/yellow/red)
+### 🎨 Beautiful Design
+- Modern dark theme
+- Blue/purple gradient accents
+- Smooth animations
+- Professional typography
+- Consistent spacing system
 
-### Editing Operations
-- **Trim**: Keep only the selected portion
-- **Delete**: Remove the selected portion (Delete/Backspace key)
-- **Normalize**: Set peak level to target dBFS
-- **Fade In/Out**: Apply linear fade to selection
-- **Gain**: Apply dB adjustment to selection or entire file
-- **Reverse**: Reverse audio (selection or entire file)
-- **Undo/Redo**: Full undo history for all edit operations
+## What You'll Learn
 
-## Keyboard Shortcuts
+This showcase demonstrates:
 
-| Shortcut | Action |
-|----------|--------|
-| Space | Play/Pause |
-| L | Toggle loop |
-| R | Reverse |
-| ← / → | Move playhead left/right by 1ms |
-| + / = | Zoom in |
-| - | Zoom out |
-| Delete / Backspace | Delete selection |
-| Cmd/Ctrl + A | Select all |
-| Cmd/Ctrl + T | Trim to selection |
-| Cmd/Ctrl + F | Fade in |
-| Cmd/Ctrl + Shift + F | Fade out |
-| Cmd/Ctrl + Shift + N | Normalize |
-| Cmd/Ctrl + Z | Undo |
-| Cmd/Ctrl + Shift + Z | Redo |
-| Cmd/Ctrl + Y | Redo (alternative) |
+1. **HTML5 Capabilities** - Advanced elements most developers don't know about
+2. **CSS Power** - Complex interactions without JavaScript
+3. **Web Standards** - Following W3C and WHATWG specifications
+4. **Accessibility** - Building inclusive web experiences
+5. **Performance** - Why less JavaScript can be better
+6. **Semantic Markup** - Using the right element for the job
 
-## Mouse Controls
+## Sections Included
 
-| Action | Result |
-|--------|--------|
-| Click | Move playhead to position |
-| Click + Drag | Create selection |
-| Double-click | Select all |
-| Scroll up/down | Zoom in/out |
-| Scroll left/right | Pan waveform |
+### 1. Pure CSS Tabs
+Three-tab interface using radio buttons and CSS-only state management.
+
+### 2. Native HTML Accordion
+FAQ-style accordion using `<details>` and `<summary>` elements.
+
+### 3. Advanced Form Elements
+Comprehensive form showcase with all modern input types, validation patterns, and grouped sections.
+
+### 4. Meter & Progress Indicators
+Visual progress bars and gauge meters for various use cases.
+
+### 5. Semantic Text Elements
+Complete reference of text-level semantic elements with examples.
+
+### 6. Figure & Media Elements
+SVG graphics, data visualizations, and responsive image techniques.
+
+### 7. Data Tables
+Properly structured semantic tables with hover effects.
+
+### 8. Pure CSS Modal
+Fully functional modal dialog using the checkbox hack technique.
+
+### 9. CSS Grid Cards
+Responsive card layout showcasing modern CSS Grid.
+
+### 10. Advanced CSS Reference
+Collapsible sections explaining all techniques used.
 
 ## Technical Details
 
-- Built with vanilla HTML, CSS, and JavaScript
-- Uses Web Audio API for playback and analysis
-- Canvas-based waveform and spectrum visualization
-- No external dependencies
-- Works offline after initial load
+- **100% Standards Compliant** - Valid HTML5 and CSS3
+- **No Build Process** - Just open index.html in a browser
+- **No Dependencies** - Completely self-contained
+- **Works Offline** - No external resources required
+- **Future Proof** - Built on stable web standards
 
 ## Browser Compatibility
 
-Works in modern browsers that support:
-- Web Audio API
-- Canvas 2D
-- ES6+ JavaScript
+Works in all modern browsers supporting:
+- HTML5 semantic elements
+- CSS3 (custom properties, flexbox, grid)
+- CSS pseudo-classes (`:checked`, `:valid`, etc.)
 
-Tested in Chrome, Firefox, Safari, and Edge.
+**Tested in:**
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
 
 ## Usage
 
-### Getting Started
-1. Open `index.html` in your browser
-2. Load audio files:
-   - Click **Import** to select one or more WAV/AIF files, or
-   - Drag and drop multiple audio files directly onto the waveform
+### View Locally
+1. Clone or download this repository
+2. Open `index.html` in any modern web browser
+3. No server required!
 
-### Working with Files
-- Multiple files appear in the file list on the right sidebar
-- Click any file in the list to load and work on it
-- Active file is highlighted in blue
-- Remove files from the queue using the X button
+### Deploy to GitHub Pages
+This project is ready to be deployed to GitHub Pages:
+1. Enable GitHub Pages in repository settings
+2. Set source to main branch / root directory
+3. Your showcase will be live at `https://[username].github.io/[repo-name]/`
 
-### Editing Audio
-1. Use the waveform to navigate and select audio
-   - Click to position playhead
-   - Click and drag to select regions
-   - Use zoom controls (+/-) or mouse scroll
-2. Adjust playback volume with the output volume slider (right sidebar)
-3. Monitor levels with the real-time peak meter during playback
-4. Apply edits using the toolbar buttons (Trim, Normalize, Fade, Gain, Reverse)
-5. Use Undo/Redo (Cmd/Ctrl+Z) as needed
-6. Click **Export** to save your edited audio
+## File Structure
 
-### Tips
-- Use keyboard shortcuts for faster editing workflow:
-  - **Cmd/Ctrl+T** to trim, **Cmd/Ctrl+F** to fade in, **Cmd/Ctrl+Shift+F** to fade out
-  - **Cmd/Ctrl+Shift+N** to normalize
-  - **L** to toggle loop mode, **R** to reverse
-  - **Space** to play/pause
-- Navigate precisely with **arrow keys** (←/→) to move the playhead in 1ms increments
-- Check the spectrum analyzer to view frequency content (FFT control in bottom-right)
-- File statistics (RMS Peak, True Peak, LUFS) update automatically when files are loaded or edited
-- All destructive edits can be undone with **Cmd/Ctrl+Z**
+```
+.
+├── index.html           # Main showcase (all-in-one file)
+├── index.html.backup    # Original audio editor (backup)
+└── readme.md           # This file
+```
+
+## HTML Elements Reference
+
+### All Elements Used:
+- Structural: `<header>`, `<nav>`, `<main>`, `<section>`, `<footer>`
+- Forms: `<form>`, `<fieldset>`, `<legend>`, `<label>`, `<input>`, `<select>`, `<option>`, `<optgroup>`, `<datalist>`, `<output>`, `<button>`, `<meter>`, `<progress>`
+- Interactive: `<details>`, `<summary>`, `<dialog>`
+- Text: `<p>`, `<h1>`-`<h6>`, `<ul>`, `<ol>`, `<li>`, `<mark>`, `<time>`, `<abbr>`, `<kbd>`, `<samp>`, `<var>`, `<cite>`, `<dfn>`, `<code>`, `<ruby>`, `<rt>`
+- Media: `<figure>`, `<figcaption>`, `<picture>`, `<img>`, `<svg>`
+- Tables: `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>`
+
+## CSS Techniques Reference
+
+### Layout
+- Flexbox for one-dimensional layouts
+- CSS Grid for two-dimensional layouts
+- Sticky positioning for fixed header
+- Fixed positioning for modal overlays
+
+### Theming
+- CSS Custom Properties (variables) in `:root`
+- Consistent color system
+- Responsive typography with `clamp()`
+
+### Interactions
+- Radio button hack for tabs
+- Checkbox hack for modals
+- `:checked` pseudo-class for state
+- Sibling combinators (`~`, `+`) for targeting
+
+### Animations
+- CSS transitions for smooth effects
+- `@keyframes` for complex animations
+- Transform animations for performance
+- Smooth scroll behavior
+
+## Resources & References
+
+### MDN Documentation
+- [HTML Elements Reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Element)
+- [CSS Pseudo-classes](https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes)
+- [CSS Custom Properties](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)
+
+### Specifications
+- [HTML Living Standard (WHATWG)](https://html.spec.whatwg.org/)
+- [W3C HTML5 Specification](https://www.w3.org/TR/html5/)
+- [CSS Specifications (W3C)](https://www.w3.org/Style/CSS/)
+
+## Contributing
+
+Found an interesting HTML element or CSS technique that's missing? Contributions welcome!
 
 ## License
 
-MIT License
+MIT License - Feel free to use this showcase for learning, teaching, or as a reference for your projects.
+
+---
+
+**Built with ❤️ using HTML5, CSS3, and Web Standards**
+*Proving that you don't always need JavaScript to build amazing web experiences.*
