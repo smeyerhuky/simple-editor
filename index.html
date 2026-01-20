@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Advanced HTML5 showcase with pure CSS - No JavaScript required">
-    <meta name="author" content="Claude">
-    <title>Advanced HTML5 Showcase - Pure CSS Magic</title>
+    <title>Pure HTML/CSS Audio Editor</title>
     <style>
-        /* ===== CSS Reset & Base Styles ===== */
+        /* ===== CSS Reset & Variables ===== */
         *, *::before, *::after {
             margin: 0;
             padding: 0;
@@ -15,193 +13,579 @@
         }
 
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1e40af;
-            --secondary: #7c3aed;
-            --success: #059669;
-            --warning: #d97706;
-            --danger: #dc2626;
-            --dark: #1a1a1a;
-            --gray-dark: #2a2a2a;
-            --gray: #3a3a3a;
-            --gray-light: #4a4a4a;
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2a2a2a;
+            --bg-tertiary: #3a3a3a;
+            --border: #4a4a4a;
             --text: #e0e0e0;
             --text-dim: #888;
-            --border: #4a4a4a;
-            --shadow: rgba(0, 0, 0, 0.3);
-            --radius: 8px;
-            --transition: 0.3s ease;
-        }
-
-        html {
-            scroll-behavior: smooth;
-            font-size: 16px;
+            --primary: #2563eb;
+            --primary-hover: #3b82f6;
+            --success: #059669;
+            --success-light: #10b981;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --purple: #7c3aed;
+            --purple-light: #8b5cf6;
+            --green: #4ade80;
+            --radius: 4px;
+            --transition: 0.15s;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, var(--dark) 0%, #0f0f1e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
             color: var(--text);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        /* ===== Header & Navigation ===== */
-        header {
-            background: var(--gray-dark);
-            border-bottom: 2px solid var(--primary);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 4px 12px var(--shadow);
-        }
-
-        nav {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        nav h1 {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-size: clamp(1.5rem, 4vw, 2rem);
-        }
-
-        nav ul {
-            list-style: none;
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        nav a {
-            color: var(--text);
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            transition: var(--transition);
-            border: 1px solid transparent;
-        }
-
-        nav a:hover,
-        nav a:focus {
-            background: var(--gray);
-            border-color: var(--primary);
-            outline: none;
-        }
-
-        /* ===== Main Container ===== */
-        main {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        section {
-            margin-bottom: 3rem;
-            padding: 2rem;
-            background: var(--gray-dark);
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 24px var(--shadow);
-        }
-
-        section > h2 {
-            font-size: clamp(1.5rem, 3vw, 2rem);
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--primary);
-            color: var(--primary);
-        }
-
-        /* ===== Pure CSS Tabs (Radio Button Hack) ===== */
-        .tabs {
+            height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
-        .tabs input[type="radio"] {
+        /* ===== Hidden Audio Element ===== */
+        #audioElement {
             position: absolute;
             opacity: 0;
             pointer-events: none;
         }
 
-        .tab-labels {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
+        /* ===== State Management (Radio Buttons) ===== */
+        .state-toggle {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
         }
 
-        .tab-labels label {
-            padding: 0.75rem 1.5rem;
-            background: var(--gray);
-            border: 2px solid var(--border);
-            border-radius: var(--radius) var(--radius) 0 0;
+        /* ===== Toolbar ===== */
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px 12px;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding-right: 12px;
+            border-right: 1px solid var(--border);
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .toolbar-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-right: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== Buttons ===== */
+        button, label.button {
+            background-color: var(--bg-tertiary);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: var(--radius);
             cursor: pointer;
-            transition: var(--transition);
+            font-size: 13px;
+            transition: background-color var(--transition);
+            display: inline-block;
             user-select: none;
         }
 
-        .tab-labels label:hover {
-            background: var(--gray-light);
-            border-color: var(--primary);
+        button:hover, label.button:hover {
+            background-color: #4a4a4a;
         }
 
-        .tabs input[type="radio"]:checked + label {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
+        button:active, label.button:active {
+            background-color: #5a5a5a;
         }
 
-        .tab-content {
+        button.primary, label.button.primary {
+            background-color: var(--primary);
+            border-color: var(--primary-hover);
+        }
+
+        button.primary:hover, label.button.primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .transport {
+            width: 40px;
+            font-size: 16px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        /* Playing state visualization */
+        #playToggle:checked ~ .toolbar .play-btn {
+            background-color: var(--success);
+            border-color: var(--success-light);
+        }
+
+        #loopToggle:checked ~ .toolbar .loop-btn {
+            background-color: var(--purple);
+            border-color: var(--purple-light);
+        }
+
+        /* ===== File Input Styling ===== */
+        input[type="file"] {
             display: none;
-            padding: 1.5rem;
-            background: var(--gray);
-            border: 2px solid var(--border);
-            border-radius: 0 var(--radius) var(--radius) var(--radius);
-            animation: fadeIn 0.3s ease;
         }
 
-        #tab1:checked ~ .tab-panels #panel1,
-        #tab2:checked ~ .tab-panels #panel2,
-        #tab3:checked ~ .tab-panels #panel3 {
-            display: block;
+        /* ===== Main Content ===== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            min-height: 0;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ===== Details/Summary Accordion ===== */
-        details {
-            background: var(--gray);
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            margin-bottom: 1rem;
+        /* ===== Editor Area ===== */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
 
+        /* ===== Waveform Container ===== */
+        .waveform-container {
+            flex: 3;
+            position: relative;
+            background-color: var(--bg-primary);
+            overflow: hidden;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* SVG Waveform */
+        .waveform-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .waveform-path {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 1.5;
+            opacity: 0.8;
+            animation: waveformPulse 2s ease-in-out infinite;
+        }
+
+        .waveform-fill {
+            fill: var(--primary);
+            opacity: 0.1;
+        }
+
+        #playToggle:checked ~ .main-content .waveform-path {
+            stroke: var(--success);
+            animation: waveformActive 1s ease-in-out infinite;
+        }
+
+        @keyframes waveformPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes waveformActive {
+            0%, 100% { opacity: 1; stroke-width: 1.5; }
+            50% { opacity: 0.9; stroke-width: 2; }
+        }
+
+        /* Playhead */
+        .playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--danger);
+            left: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #playToggle:checked ~ .main-content .playhead {
+            opacity: 1;
+            animation: playheadMove 10s linear infinite;
+        }
+
+        @keyframes playheadMove {
+            0% { left: 0; }
+            100% { left: 100%; }
+        }
+
+        /* Timeline ruler */
+        .timeline-ruler {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 4px;
+            font-size: 9px;
+            color: var(--text-dim);
+            align-items: center;
+        }
+
+        /* ===== Spectrogram Container ===== */
+        .spectrogram-container {
+            flex: 1;
+            position: relative;
+            background-color: #0a0a0a;
+            border-top: 1px solid var(--border);
+            min-height: 80px;
+            max-height: 150px;
+            overflow: hidden;
+        }
+
+        .spectrogram-label {
+            position: absolute;
+            top: 4px;
+            left: 8px;
+            font-size: 10px;
+            color: #666;
+            z-index: 10;
+        }
+
+        .spectrogram-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Animated spectrogram bars */
+        .spec-bar {
+            animation: spectrumPulse 1.5s ease-in-out infinite;
+        }
+
+        .spec-bar:nth-child(2n) {
+            animation-delay: 0.1s;
+        }
+
+        .spec-bar:nth-child(3n) {
+            animation-delay: 0.2s;
+        }
+
+        #playToggle:checked ~ .main-content .spec-bar {
+            animation: spectrumActive 0.8s ease-in-out infinite;
+        }
+
+        @keyframes spectrumPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.2; }
+        }
+
+        @keyframes spectrumActive {
+            0%, 100% { opacity: 0.8; transform: scaleY(1); }
+            50% { opacity: 1; transform: scaleY(1.2); }
+        }
+
+        .fft-controls {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            color: #666;
+        }
+
+        .fft-controls label {
+            color: #666;
+        }
+
+        .fft-controls select {
+            background: var(--bg-tertiary);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            padding: 2px 4px;
+            font-size: 9px;
+        }
+
+        /* ===== Meters Panel ===== */
+        .meters-panel {
+            width: 140px;
+            background-color: #222;
+            border-left: 1px solid var(--border);
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .meter {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .meter-label {
+            font-size: 9px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .meter-value {
+            font-size: 14px;
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--green);
+            min-height: 20px;
+        }
+
+        /* VU Meter bars */
+        .vu-meter {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vu-meter::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 70%;
+            background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
+            transition: width 0.1s;
+        }
+
+        #playToggle:checked ~ .main-content .vu-meter::before {
+            animation: vuMeterActive 1.2s ease-in-out infinite;
+        }
+
+        @keyframes vuMeterActive {
+            0%, 100% { width: 60%; }
+            25% { width: 75%; }
+            50% { width: 85%; }
+            75% { width: 70%; }
+        }
+
+        /* Peak meter */
+        .peak-meter {
+            width: 100%;
+            height: 40px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .peak-meter::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 65%;
+            background: linear-gradient(180deg, transparent, var(--success) 40%, var(--warning) 80%, var(--danger));
+            transition: height 0.1s;
+        }
+
+        #playToggle:checked ~ .main-content .peak-meter::before {
+            animation: peakMeterActive 1s ease-in-out infinite;
+        }
+
+        @keyframes peakMeterActive {
+            0%, 100% { height: 65%; }
+            50% { height: 85%; }
+        }
+
+        /* ===== Controls Panel ===== */
+        .controls-panel {
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 12px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 120px;
+        }
+
+        .control-group label {
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Range Input Styling */
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--primary-hover);
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--primary);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: var(--primary-hover);
+            transform: scale(1.2);
+        }
+
+        .range-value {
+            font-size: 11px;
+            color: var(--text);
+            font-family: monospace;
+            text-align: center;
+            min-height: 16px;
+        }
+
+        /* ===== Effects Panel ===== */
+        .effects-panel {
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 12px;
+        }
+
+        .effects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .effect-control {
+            background: var(--bg-tertiary);
+            padding: 8px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .effect-control h4 {
+            font-size: 11px;
+            color: var(--text);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Checkbox styling for effect toggles */
+        input[type="checkbox"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            transition: all var(--transition);
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        input[type="checkbox"]:checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 12px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Visual effect representation */
+        #reverbToggle:checked ~ .main-content .waveform-container {
+            filter: blur(0.5px);
+        }
+
+        #distortionToggle:checked ~ .main-content .waveform-svg {
+            filter: contrast(1.5) saturate(1.5);
+        }
+
+        #delayToggle:checked ~ .main-content .waveform-path {
+            filter: drop-shadow(2px 0 0 rgba(37, 99, 235, 0.5));
+        }
+
+        #compressorToggle:checked ~ .main-content .vu-meter::before {
+            background: linear-gradient(90deg, var(--success), var(--success), var(--warning));
+        }
+
+        /* ===== Details/Summary for Collapsible Sections ===== */
+        details {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+        }
+
         summary {
-            padding: 1rem 1.5rem;
+            padding: 8px 12px;
             cursor: pointer;
             user-select: none;
             font-weight: 600;
-            background: var(--gray-light);
-            transition: var(--transition);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             list-style: none;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: background-color var(--transition);
         }
 
         summary::-webkit-details-marker {
@@ -219,1293 +603,498 @@
         }
 
         summary:hover {
-            background: var(--primary);
-            color: white;
+            background: #4a4a4a;
         }
 
         details > *:not(summary) {
-            padding: 1.5rem;
+            padding: 12px;
             border-top: 1px solid var(--border);
         }
 
-        /* ===== Dialog Modal (Pure HTML) ===== */
-        dialog {
-            border: none;
-            border-radius: var(--radius);
-            padding: 0;
-            max-width: 600px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            background: var(--gray-dark);
-            color: var(--text);
-        }
-
-        dialog::backdrop {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
-        }
-
-        dialog header {
-            background: var(--primary);
-            padding: 1.5rem;
-            position: relative;
-        }
-
-        dialog h3 {
-            margin: 0;
-            color: white;
-        }
-
-        dialog .dialog-content {
-            padding: 2rem;
-        }
-
-        dialog footer {
-            padding: 1rem 2rem;
-            background: var(--gray);
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-
-        /* ===== Forms & Advanced Input Elements ===== */
-        fieldset {
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        legend {
-            padding: 0.5rem 1rem;
-            background: var(--primary);
-            color: white;
-            border-radius: var(--radius);
-            font-weight: 600;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--text);
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="url"],
-        input[type="tel"],
-        input[type="date"],
-        input[type="time"],
-        input[type="datetime-local"],
-        input[type="number"],
-        input[type="search"],
-        input[type="color"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--dark);
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            color: var(--text);
-            font-family: inherit;
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-
-        input:focus,
-        textarea:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-        }
-
-        input:valid {
-            border-color: var(--success);
-        }
-
-        input:invalid:not(:placeholder-shown) {
-            border-color: var(--danger);
-        }
-
-        /* ===== Meter & Progress Elements ===== */
-        meter,
-        progress {
-            width: 100%;
-            height: 2rem;
-            border-radius: var(--radius);
-        }
-
-        meter {
-            border: 2px solid var(--border);
-        }
-
-        progress {
-            appearance: none;
-            border: none;
-            background: var(--gray);
-        }
-
-        progress::-webkit-progress-bar {
-            background: var(--gray);
-            border-radius: var(--radius);
-        }
-
-        progress::-webkit-progress-value {
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            border-radius: var(--radius);
-            transition: width 0.5s ease;
-        }
-
-        progress::-moz-progress-bar {
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            border-radius: var(--radius);
-        }
-
-        /* ===== Range Input Styling ===== */
-        input[type="range"] {
-            width: 100%;
-            height: 8px;
-            background: var(--gray);
-            border-radius: 4px;
-            outline: none;
-            appearance: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: var(--primary);
-            border-radius: 50%;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover {
-            background: var(--secondary);
-            transform: scale(1.2);
-        }
-
-        input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: var(--primary);
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        input[type="range"]::-moz-range-thumb:hover {
-            background: var(--secondary);
-            transform: scale(1.2);
-        }
-
-        /* ===== Checkbox & Radio Styling ===== */
-        input[type="checkbox"],
-        input[type="radio"] {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--border);
-            border-radius: 4px;
-            cursor: pointer;
-            position: relative;
-            transition: var(--transition);
-            vertical-align: middle;
-            margin-right: 0.5rem;
-        }
-
-        input[type="radio"] {
-            border-radius: 50%;
-        }
-
-        input[type="checkbox"]:checked,
-        input[type="radio"]:checked {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        input[type="checkbox"]:checked::after {
-            content: '✓';
-            position: absolute;
-            color: white;
-            font-size: 14px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        input[type="radio"]:checked::after {
-            content: '';
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: white;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        /* ===== Buttons ===== */
-        button,
-        .button {
-            padding: 0.75rem 1.5rem;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: var(--transition);
-            display: inline-block;
-            text-decoration: none;
-        }
-
-        button:hover,
-        .button:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-        }
-
-        button:active,
-        .button:active {
-            transform: translateY(0);
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .button-secondary {
-            background: var(--secondary);
-        }
-
-        .button-secondary:hover {
-            background: #6d28d9;
-        }
-
-        .button-success {
-            background: var(--success);
-        }
-
-        .button-success:hover {
-            background: #047857;
-        }
-
-        .button-danger {
-            background: var(--danger);
-        }
-
-        .button-danger:hover {
-            background: #b91c1c;
-        }
-
-        /* ===== Figure & Figcaption ===== */
-        figure {
-            background: var(--gray);
-            padding: 1rem;
-            border-radius: var(--radius);
-            border: 2px solid var(--border);
-            margin: 1rem 0;
-        }
-
-        figcaption {
-            margin-top: 1rem;
-            padding-top: 1rem;
+        /* ===== Status Bar ===== */
+        .status-bar {
+            background-color: var(--bg-secondary);
             border-top: 1px solid var(--border);
-            font-style: italic;
-            color: var(--text-dim);
-            text-align: center;
-        }
-
-        /* ===== Picture Element with Art Direction ===== */
-        picture img {
-            width: 100%;
-            height: auto;
-            border-radius: var(--radius);
-        }
-
-        /* ===== Semantic Text Elements ===== */
-        mark {
-            background: var(--warning);
-            color: var(--dark);
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-        }
-
-        kbd {
-            background: var(--dark);
-            border: 2px solid var(--border);
-            border-radius: 4px;
-            padding: 0.2rem 0.5rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            box-shadow: 0 2px 4px var(--shadow);
-        }
-
-        code,
-        samp {
-            background: var(--dark);
-            padding: 0.2rem 0.5rem;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            color: #10b981;
-        }
-
-        var {
-            font-style: italic;
-            color: var(--secondary);
-            font-family: 'Courier New', monospace;
-        }
-
-        abbr {
-            text-decoration: underline dotted;
-            cursor: help;
-            color: var(--primary);
-        }
-
-        time {
-            color: var(--secondary);
-            font-weight: 600;
-        }
-
-        cite {
-            font-style: italic;
-            color: var(--text-dim);
-        }
-
-        dfn {
-            font-style: italic;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        /* ===== Ruby Annotation ===== */
-        ruby {
-            font-size: 1.2em;
-        }
-
-        rt {
-            font-size: 0.6em;
-            color: var(--text-dim);
-        }
-
-        /* ===== Output Element ===== */
-        output {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: var(--gray);
-            border: 2px solid var(--primary);
-            border-radius: var(--radius);
-            font-weight: 600;
-            color: var(--primary);
-            min-width: 60px;
-            text-align: center;
-        }
-
-        /* ===== Tables ===== */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-            background: var(--gray);
-            border-radius: var(--radius);
-            overflow: hidden;
-        }
-
-        thead {
-            background: var(--primary);
-            color: white;
-        }
-
-        th,
-        td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        tbody tr:hover {
-            background: var(--gray-light);
-        }
-
-        /* ===== Grid Layout ===== */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: 1.5rem 0;
-        }
-
-        .card {
-            background: var(--gray);
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            border: 2px solid var(--border);
-            transition: var(--transition);
-        }
-
-        .card:hover {
-            border-color: var(--primary);
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px var(--shadow);
-        }
-
-        /* ===== Utility Classes ===== */
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .mb-1 { margin-bottom: 1rem; }
-        .mb-2 { margin-bottom: 2rem; }
-        .mt-1 { margin-top: 1rem; }
-        .mt-2 { margin-top: 2rem; }
-
-        /* ===== CSS-Only Modal (Checkbox Hack) ===== */
-        .modal-toggle {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
-            display: none;
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-toggle:checked ~ .modal-overlay {
-            display: flex;
-        }
-
-        .modal-box {
-            background: var(--gray-dark);
-            border-radius: var(--radius);
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            animation: modalSlideIn 0.3s ease;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-50px) scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .modal-header {
-            background: var(--primary);
-            padding: 1.5rem;
+            padding: 4px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 11px;
+            color: var(--text-dim);
         }
 
-        .modal-header h3 {
-            margin: 0;
-            color: white;
+        .status-item {
+            display: flex;
+            gap: 16px;
         }
 
-        .modal-close {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 2rem;
-            cursor: pointer;
-            padding: 0;
-            width: 40px;
-            height: 40px;
+        .status-item span {
+            display: flex;
+            gap: 6px;
+        }
+
+        .status-value {
+            color: var(--text);
+            font-family: monospace;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .meters-panel {
+                width: 100px;
+            }
+
+            .toolbar {
+                padding: 6px;
+            }
+
+            .effects-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== Audio Element Custom Controls ===== */
+        .audio-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Hide default audio controls */
+        audio::-webkit-media-controls {
+            display: none !important;
+        }
+
+        audio {
+            display: none;
+        }
+
+        /* ===== Loading State ===== */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 26, 26, 0.9);
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg-tertiary);
+            border-top-color: var(--primary);
             border-radius: 50%;
-            transition: var(--transition);
+            animation: spin 1s linear infinite;
         }
 
-        .modal-close:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: rotate(90deg);
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .modal-body {
-            padding: 2rem;
+        /* ===== Welcome Message ===== */
+        .welcome-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-dim);
+            pointer-events: none;
         }
 
-        /* ===== Responsive Design ===== */
-        @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            nav ul {
-                width: 100%;
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            section {
-                padding: 1rem;
-            }
+        .welcome-message h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text);
         }
 
-        /* ===== Custom Scrollbar ===== */
-        ::-webkit-scrollbar {
-            width: 12px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--dark);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 6px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary);
-        }
-
-        /* ===== Focus Visible for Accessibility ===== */
-        :focus-visible {
-            outline: 3px solid var(--primary);
-            outline-offset: 2px;
-        }
-
-        /* ===== Print Styles ===== */
-        @media print {
-            body {
-                background: white;
-                color: black;
-            }
-
-            section {
-                page-break-inside: avoid;
-            }
+        .welcome-message p {
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
-    <header>
-        <nav>
-            <h1>Advanced HTML5 Showcase</h1>
-            <ul role="navigation">
-                <li><a href="#tabs">Tabs</a></li>
-                <li><a href="#accordion">Accordion</a></li>
-                <li><a href="#forms">Forms</a></li>
-                <li><a href="#semantic">Semantic</a></li>
-                <li><a href="#media">Media</a></li>
-            </ul>
-        </nav>
-    </header>
+    <!-- State Management Checkboxes/Radios -->
+    <input type="checkbox" id="playToggle" class="state-toggle">
+    <input type="checkbox" id="loopToggle" class="state-toggle">
+    <input type="checkbox" id="reverbToggle" class="state-toggle">
+    <input type="checkbox" id="distortionToggle" class="state-toggle">
+    <input type="checkbox" id="delayToggle" class="state-toggle">
+    <input type="checkbox" id="compressorToggle" class="state-toggle">
 
-    <main>
-        <!-- Hero Section -->
-        <section class="text-center">
-            <h2>Pure HTML & CSS Magic</h2>
-            <p style="font-size: 1.2em; margin: 1rem 0;">Zero JavaScript. Maximum Power.</p>
-            <p>This showcase demonstrates the incredible capabilities of modern HTML5 and CSS3, featuring advanced elements, complex interactions, and beautiful design—all without a single line of JavaScript.</p>
-            <p class="mt-1">
-                <mark>Highlighted content</mark> •
-                <kbd>Ctrl</kbd>+<kbd>S</kbd> •
-                <code>&lt;element&gt;</code> •
-                <var>x</var> = 42 •
-                <abbr title="HyperText Markup Language">HTML</abbr> •
-                <time datetime="2026-01-20">January 20, 2026</time>
-            </p>
-        </section>
+    <!-- Hidden Audio Element with Native Controls -->
+    <!-- Note: File input requires JavaScript to load files into audio element -->
+    <!-- For demo purposes, you can add a src attribute with an audio file URL -->
+    <audio id="audioElement" preload="auto" controls style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; opacity: 0.8;">
+        <!-- Add your audio source here: <source src="your-audio-file.wav" type="audio/wav"> -->
+    </audio>
 
-        <!-- Pure CSS Tabs -->
-        <section id="tabs">
-            <h2>Pure CSS Tabs (Radio Button Technique)</h2>
-            <div class="tabs">
-                <div class="tab-labels">
-                    <input type="radio" name="tabs" id="tab1" checked>
-                    <label for="tab1">Overview</label>
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <label for="fileInput" class="button primary">
+                📁 Open File
+            </label>
+            <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.ogg,.m4a">
+        </div>
 
-                    <input type="radio" name="tabs" id="tab2">
-                    <label for="tab2">Features</label>
+        <div class="toolbar-group">
+            <span class="toolbar-label">Transport</span>
+            <label for="playToggle" class="button transport play-btn">▶</label>
+            <button class="transport" type="button">⏹</button>
+            <label for="loopToggle" class="button transport loop-btn">🔁</label>
+        </div>
 
-                    <input type="radio" name="tabs" id="tab3">
-                    <label for="tab3">Technology</label>
+        <div class="toolbar-group">
+            <span class="toolbar-label">Edit</span>
+            <button>✂ Cut</button>
+            <button>📋 Copy</button>
+            <button>📄 Paste</button>
+        </div>
+
+        <div class="toolbar-group">
+            <span class="toolbar-label">Effects</span>
+            <button>🎚 Normalize</button>
+            <button>🔊 Amplify</button>
+            <button>🎵 Fade</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="primary">💾 Export WAV</button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="editor-area">
+            <!-- Waveform Display -->
+            <div class="waveform-container">
+                <div class="welcome-message">
+                    <h3>Pure HTML/CSS Audio Editor</h3>
+                    <p>Open an audio file to begin</p>
+                    <p style="margin-top: 8px; font-size: 11px;">Zero JavaScript • 100% HTML/CSS</p>
                 </div>
 
-                <div class="tab-panels">
-                    <div class="tab-content" id="panel1">
-                        <h3>Welcome to Pure CSS Tabs</h3>
-                        <p>This tab interface uses the radio button hack with the <code>:checked</code> pseudo-class to toggle content visibility. No JavaScript required!</p>
-                        <p class="mt-1">The technique leverages the <dfn>general sibling combinator</dfn> (<code>~</code>) to target content based on the checked state of hidden radio inputs.</p>
-                    </div>
-
-                    <div class="tab-content" id="panel2">
-                        <h3>Key Features</h3>
-                        <ul style="margin-left: 2rem;">
-                            <li>Fully accessible with keyboard navigation</li>
-                            <li>Smooth CSS transitions</li>
-                            <li>Responsive design</li>
-                            <li>Zero dependencies</li>
-                            <li>SEO-friendly content</li>
-                        </ul>
-                    </div>
-
-                    <div class="tab-content" id="panel3">
-                        <h3>Technology Stack</h3>
-                        <p><strong>HTML:</strong> Radio inputs with labels</p>
-                        <p><strong>CSS:</strong> <code>:checked</code> pseudo-class, sibling combinators, flexbox</p>
-                        <p><strong>JavaScript:</strong> <mark>None!</mark></p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Details/Summary Accordion -->
-        <section id="accordion">
-            <h2>Native HTML Accordion (Details/Summary)</h2>
-            <p class="mb-1">The <code>&lt;details&gt;</code> and <code>&lt;summary&gt;</code> elements provide built-in expandable content functionality.</p>
-
-            <details open>
-                <summary>What is the &lt;details&gt; element?</summary>
-                <p>The <code>&lt;details&gt;</code> element is a native HTML disclosure widget that can toggle between showing and hiding additional content. It's part of the HTML5 specification and works without any JavaScript.</p>
-                <p class="mt-1">According to <cite>MDN Web Docs</cite>, the details element creates a disclosure widget in which information is visible only when the widget is toggled into an "open" state.</p>
-            </details>
-
-            <details>
-                <summary>Browser Support & Accessibility</summary>
-                <p>Modern browser support for <code>&lt;details&gt;</code> is excellent:</p>
-                <ul style="margin-left: 2rem;">
-                    <li>Chrome 12+ (2011)</li>
-                    <li>Firefox 49+ (2016)</li>
-                    <li>Safari 6+ (2012)</li>
-                    <li>Edge 79+ (2020)</li>
-                </ul>
-                <p class="mt-1">The element is fully accessible with keyboard navigation using the <kbd>Enter</kbd> or <kbd>Space</kbd> keys to toggle.</p>
-            </details>
-
-            <details>
-                <summary>Advanced Styling Options</summary>
-                <p>You can extensively customize the appearance using CSS:</p>
-                <ul style="margin-left: 2rem;">
-                    <li>Custom disclosure markers with <code>summary::marker</code></li>
-                    <li>Animated transitions for smooth opening/closing</li>
-                    <li>Different states with <code>[open]</code> attribute selector</li>
-                    <li>Nested details for hierarchical content</li>
-                </ul>
-            </details>
-
-            <details>
-                <summary>Real-World Use Cases</summary>
-                <p>The <code>&lt;details&gt;</code> element is perfect for:</p>
-                <ul style="margin-left: 2rem;">
-                    <li><strong>FAQ sections</strong> - Toggle questions and answers</li>
-                    <li><strong>Documentation</strong> - Collapsible code examples</li>
-                    <li><strong>Settings panels</strong> - Show/hide advanced options</li>
-                    <li><strong>Mobile menus</strong> - Expandable navigation</li>
-                    <li><strong>Form sections</strong> - Progressive disclosure</li>
-                </ul>
-            </details>
-        </section>
-
-        <!-- Advanced Form Elements -->
-        <section id="forms">
-            <h2>Advanced Form Elements</h2>
-
-            <form action="#" method="post">
-                <fieldset>
-                    <legend>Personal Information</legend>
-
-                    <div class="form-group">
-                        <label for="fullname">Full Name (Required)</label>
-                        <input type="text" id="fullname" name="fullname" required placeholder="Enter your full name" pattern="[A-Za-z ]{3,}" title="Name must be at least 3 characters">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" required placeholder="you@example.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="website">Website (URL Validation)</label>
-                        <input type="url" id="website" name="website" placeholder="https://example.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="phone">Phone Number (Pattern Validation)</label>
-                        <input type="tel" id="phone" name="phone" placeholder="123-456-7890" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" title="Format: 123-456-7890">
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Data Input with Datalist</legend>
-
-                    <div class="form-group">
-                        <label for="browser">Choose Your Browser (Datalist Autocomplete)</label>
-                        <input type="text" id="browser" name="browser" list="browsers" placeholder="Start typing...">
-                        <datalist id="browsers">
-                            <option value="Chrome">
-                            <option value="Firefox">
-                            <option value="Safari">
-                            <option value="Edge">
-                            <option value="Opera">
-                            <option value="Brave">
-                            <option value="Vivaldi">
-                        </datalist>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="language">Programming Language</label>
-                        <input type="text" id="language" name="language" list="languages" placeholder="Select or type...">
-                        <datalist id="languages">
-                            <option value="JavaScript">
-                            <option value="Python">
-                            <option value="Java">
-                            <option value="C++">
-                            <option value="Ruby">
-                            <option value="Go">
-                            <option value="Rust">
-                            <option value="TypeScript">
-                        </datalist>
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Date & Time Inputs</legend>
-
-                    <div class="form-group">
-                        <label for="date">Select Date</label>
-                        <input type="date" id="date" name="date">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="time">Select Time</label>
-                        <input type="time" id="time" name="time">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="datetime">Date and Time</label>
-                        <input type="datetime-local" id="datetime" name="datetime">
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Number & Range Inputs</legend>
-
-                    <div class="form-group">
-                        <label for="quantity">Quantity (1-100)</label>
-                        <input type="number" id="quantity" name="quantity" min="1" max="100" value="1">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="volume">Volume Control</label>
-                        <input type="range" id="volume" name="volume" min="0" max="100" value="50">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="color">Color Picker</label>
-                        <input type="color" id="color" name="color" value="#2563eb">
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Select with Optgroup</legend>
-
-                    <div class="form-group">
-                        <label for="country">Select Country (Grouped Options)</label>
-                        <select id="country" name="country">
-                            <optgroup label="North America">
-                                <option value="us">United States</option>
-                                <option value="ca">Canada</option>
-                                <option value="mx">Mexico</option>
-                            </optgroup>
-                            <optgroup label="Europe">
-                                <option value="uk">United Kingdom</option>
-                                <option value="de">Germany</option>
-                                <option value="fr">France</option>
-                                <option value="es">Spain</option>
-                            </optgroup>
-                            <optgroup label="Asia">
-                                <option value="jp">Japan</option>
-                                <option value="cn">China</option>
-                                <option value="in">India</option>
-                                <option value="kr">South Korea</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Checkboxes & Radio Buttons</legend>
-
-                    <div class="form-group">
-                        <label>Select Your Interests:</label>
-                        <div>
-                            <input type="checkbox" id="interest1" name="interests" value="coding">
-                            <label for="interest1" style="display: inline;">Coding</label>
-                        </div>
-                        <div>
-                            <input type="checkbox" id="interest2" name="interests" value="design">
-                            <label for="interest2" style="display: inline;">Design</label>
-                        </div>
-                        <div>
-                            <input type="checkbox" id="interest3" name="interests" value="music">
-                            <label for="interest3" style="display: inline;">Music</label>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Choose Your Skill Level:</label>
-                        <div>
-                            <input type="radio" id="beginner" name="level" value="beginner" checked>
-                            <label for="beginner" style="display: inline;">Beginner</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="intermediate" name="level" value="intermediate">
-                            <label for="intermediate" style="display: inline;">Intermediate</label>
-                        </div>
-                        <div>
-                            <input type="radio" id="advanced" name="level" value="advanced">
-                            <label for="advanced" style="display: inline;">Advanced</label>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                    <button type="reset" class="button-danger">Reset Form</button>
-                    <button type="submit" class="button-success">Submit Form</button>
-                </div>
-            </form>
-        </section>
-
-        <!-- Meter & Progress Elements -->
-        <section>
-            <h2>Meter & Progress Indicators</h2>
-
-            <div class="form-group">
-                <label>Disk Usage (Meter Element)</label>
-                <meter value="0.7" min="0" max="1" low="0.3" high="0.7" optimum="0.2"></meter>
-                <p style="margin-top: 0.5rem; color: var(--text-dim);">The <code>&lt;meter&gt;</code> element represents a scalar measurement within a known range (like disk usage or battery level).</p>
-            </div>
-
-            <div class="form-group">
-                <label>Storage Capacity</label>
-                <meter value="65" min="0" max="100" low="20" high="80" optimum="50">65%</meter>
-            </div>
-
-            <div class="form-group">
-                <label>Download Progress (Progress Element)</label>
-                <progress value="75" max="100"></progress>
-                <p style="margin-top: 0.5rem; color: var(--text-dim);">The <code>&lt;progress&gt;</code> element represents the completion progress of a task.</p>
-            </div>
-
-            <div class="form-group">
-                <label>Upload Progress</label>
-                <progress value="45" max="100"></progress>
-            </div>
-
-            <div class="form-group">
-                <label>Indeterminate Progress</label>
-                <progress></progress>
-                <p style="margin-top: 0.5rem; color: var(--text-dim);">Without a value attribute, progress shows an indeterminate state.</p>
-            </div>
-        </section>
-
-        <!-- Output Element -->
-        <section>
-            <h2>Output Element</h2>
-            <p class="mb-1">The <code>&lt;output&gt;</code> element represents the result of a calculation or user action. It's commonly used to display form results.</p>
-
-            <div class="grid">
-                <div class="card">
-                    <h4>Example 1: Static Display</h4>
-                    <p>Total Price: <output style="display: inline-block; padding: 0.3rem 0.8rem;">$150.00</output></p>
-                    <p class="mt-1">The output element is semantically correct for displaying calculated values or results.</p>
-                </div>
-                <div class="card">
-                    <h4>Example 2: Form Result</h4>
-                    <p>Selected Items: <output style="display: inline-block; padding: 0.3rem 0.8rem;">3</output></p>
-                    <p class="mt-1">Subtotal: <output style="display: inline-block; padding: 0.3rem 0.8rem;">$299.99</output></p>
-                </div>
-                <div class="card">
-                    <h4>Example 3: Status Display</h4>
-                    <p>Processing Status: <output style="display: inline-block; padding: 0.3rem 0.8rem;">Complete</output></p>
-                    <p class="mt-1">The output element can display any form of result or status information.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Semantic Text Elements -->
-        <section id="semantic">
-            <h2>Semantic Text Elements</h2>
-
-            <div class="card">
-                <h3>Text Highlighting & Annotations</h3>
-                <p>The <mark>mark element</mark> highlights text for reference purposes, like search results.</p>
-                <p class="mt-1">Use <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy and <kbd>Ctrl</kbd>+<kbd>V</kbd> to paste. The <code>&lt;kbd&gt;</code> element represents keyboard input.</p>
-            </div>
-
-            <div class="card">
-                <h3>Code & Variables</h3>
-                <p>Sample output: <samp>Error 404: File not found</samp></p>
-                <p class="mt-1">The variable <var>x</var> equals <var>y</var> + 5 in the equation.</p>
-                <p class="mt-1">Example code: <code>const greeting = 'Hello, World!';</code></p>
-            </div>
-
-            <div class="card">
-                <h3>Abbreviations & Definitions</h3>
-                <p>The <abbr title="World Wide Web Consortium">W3C</abbr> maintains <abbr title="HyperText Markup Language">HTML</abbr> specifications.</p>
-                <p class="mt-1">The term <dfn>semantic HTML</dfn> refers to the use of HTML markup to reinforce the meaning of content.</p>
-            </div>
-
-            <div class="card">
-                <h3>Time & Citations</h3>
-                <p>Published on <time datetime="2026-01-20T12:00:00">January 20, 2026 at noon</time>.</p>
-                <p class="mt-1">As stated in <cite>HTML: The Definitive Guide</cite>, semantic elements improve accessibility.</p>
-            </div>
-
-            <div class="card">
-                <h3>Ruby Annotations (East Asian Typography)</h3>
-                <p>Japanese: <ruby>漢字<rt>かんじ</rt></ruby></p>
-                <p class="mt-1">Chinese: <ruby>汉字<rt>hànzì</rt></ruby></p>
-                <p class="mt-1">The <code>&lt;ruby&gt;</code> element is used for East Asian typography annotations.</p>
-            </div>
-        </section>
-
-        <!-- Figure & Media Elements -->
-        <section id="media">
-            <h2>Figure, Picture & Media Elements</h2>
-
-            <figure>
-                <svg width="100%" height="200" style="background: var(--dark); border-radius: var(--radius);">
-                    <rect width="100%" height="100%" fill="url(#gradient1)"/>
-                    <circle cx="100" cy="100" r="60" fill="var(--primary)" opacity="0.8"/>
-                    <circle cx="200" cy="100" r="60" fill="var(--secondary)" opacity="0.8"/>
-                    <circle cx="150" cy="150" r="60" fill="var(--success)" opacity="0.8"/>
+                <!-- SVG Waveform -->
+                <svg class="waveform-svg" viewBox="0 0 1000 200" preserveAspectRatio="none">
                     <defs>
-                        <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#1a1a1a;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#2a2a2a;stop-opacity:1" />
+                        <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#2563eb;stop-opacity:0.8" />
+                            <stop offset="50%" style="stop-color:#2563eb;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#2563eb;stop-opacity:0.8" />
                         </linearGradient>
                     </defs>
+
+                    <!-- Left Channel Waveform -->
+                    <path class="waveform-path" stroke="url(#waveGradient)" d="M0,100 Q25,80 50,85 T100,90 Q125,70 150,75 T200,80 Q225,60 250,65 T300,70 Q325,85 350,90 T400,95 Q425,110 450,105 T500,100 Q525,85 550,90 T600,95 Q625,75 650,80 T700,85 Q725,95 750,100 T800,105 Q825,90 850,95 T900,100 Q925,110 950,105 T1000,100"/>
+
+                    <!-- Filled area -->
+                    <path class="waveform-fill" d="M0,100 Q25,80 50,85 T100,90 Q125,70 150,75 T200,80 Q225,60 250,65 T300,70 Q325,85 350,90 T400,95 Q425,110 450,105 T500,100 Q525,85 550,90 T600,95 Q625,75 650,80 T700,85 Q725,95 750,100 T800,105 Q825,90 850,95 T900,100 Q925,110 950,105 T1000,100 L1000,100 Q975,90 950,95 T900,100 Q875,110 850,105 T800,100 Q775,105 750,100 T700,95 Q675,120 650,115 T600,110 Q575,115 550,110 T500,105 Q475,95 450,100 T400,105 Q375,110 350,105 T300,100 Q275,135 250,130 T200,125 Q175,125 150,120 T100,115 Q75,120 50,115 T0,110 Z"/>
+
+                    <!-- Right Channel (mirrored) -->
+                    <path class="waveform-path" stroke="url(#waveGradient)" d="M0,100 Q25,120 50,115 T100,110 Q125,130 150,125 T200,120 Q225,140 250,135 T300,130 Q325,115 350,110 T400,105 Q425,90 450,95 T500,100 Q525,115 550,110 T600,105 Q625,125 650,120 T700,115 Q725,105 750,100 T800,95 Q825,110 850,105 T900,100 Q925,90 950,95 T1000,100"/>
                 </svg>
-                <figcaption>Figure 1: SVG Graphics rendered inline with gradient background and overlapping circles demonstrating opacity</figcaption>
-            </figure>
 
-            <figure>
-                <svg width="100%" height="300" viewBox="0 0 800 300" style="background: var(--dark); border-radius: var(--radius);">
-                    <!-- Chart axes -->
-                    <line x1="50" y1="250" x2="750" y2="250" stroke="var(--text)" stroke-width="2"/>
-                    <line x1="50" y1="250" x2="50" y2="50" stroke="var(--text)" stroke-width="2"/>
+                <!-- Playhead -->
+                <div class="playhead"></div>
 
-                    <!-- Bar chart -->
-                    <rect x="100" y="150" width="80" height="100" fill="var(--primary)"/>
-                    <rect x="220" y="100" width="80" height="150" fill="var(--secondary)"/>
-                    <rect x="340" y="120" width="80" height="130" fill="var(--success)"/>
-                    <rect x="460" y="80" width="80" height="170" fill="var(--warning)"/>
-                    <rect x="580" y="140" width="80" height="110" fill="var(--danger)"/>
+                <!-- Timeline Ruler -->
+                <div class="timeline-ruler">
+                    <span>0:00</span>
+                    <span>0:30</span>
+                    <span>1:00</span>
+                    <span>1:30</span>
+                    <span>2:00</span>
+                    <span>2:30</span>
+                    <span>3:00</span>
+                </div>
+            </div>
 
-                    <!-- Labels -->
-                    <text x="140" y="270" fill="var(--text)" text-anchor="middle" font-size="12">Q1</text>
-                    <text x="260" y="270" fill="var(--text)" text-anchor="middle" font-size="12">Q2</text>
-                    <text x="380" y="270" fill="var(--text)" text-anchor="middle" font-size="12">Q3</text>
-                    <text x="500" y="270" fill="var(--text)" text-anchor="middle" font-size="12">Q4</text>
-                    <text x="620" y="270" fill="var(--text)" text-anchor="middle" font-size="12">Q5</text>
+            <!-- Spectrogram Display -->
+            <div class="spectrogram-container">
+                <div class="spectrogram-label">SPECTROGRAM</div>
 
-                    <!-- Title -->
-                    <text x="400" y="30" fill="var(--primary)" text-anchor="middle" font-size="20" font-weight="bold">Quarterly Performance</text>
+                <!-- SVG Spectrogram -->
+                <svg class="spectrogram-svg" viewBox="0 0 1000 100" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="specGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                            <stop offset="0%" style="stop-color:#000080;stop-opacity:1" />
+                            <stop offset="25%" style="stop-color:#0000ff;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#00ff00;stop-opacity:1" />
+                            <stop offset="75%" style="stop-color:#ffff00;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#ff0000;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Frequency bars -->
+                    <rect class="spec-bar" x="0" y="20" width="10" height="80" fill="url(#specGradient)" opacity="0.3"/>
+                    <rect class="spec-bar" x="15" y="10" width="10" height="90" fill="url(#specGradient)" opacity="0.4"/>
+                    <rect class="spec-bar" x="30" y="30" width="10" height="70" fill="url(#specGradient)" opacity="0.35"/>
+                    <rect class="spec-bar" x="45" y="15" width="10" height="85" fill="url(#specGradient)" opacity="0.45"/>
+                    <rect class="spec-bar" x="60" y="25" width="10" height="75" fill="url(#specGradient)" opacity="0.3"/>
+                    <rect class="spec-bar" x="75" y="5" width="10" height="95" fill="url(#specGradient)" opacity="0.5"/>
+                    <rect class="spec-bar" x="90" y="20" width="10" height="80" fill="url(#specGradient)" opacity="0.4"/>
+
+                    <!-- Pattern repeats -->
+                    <rect class="spec-bar" x="110" y="30" width="10" height="70" fill="url(#specGradient)" opacity="0.35"/>
+                    <rect class="spec-bar" x="125" y="15" width="10" height="85" fill="url(#specGradient)" opacity="0.4"/>
+                    <rect class="spec-bar" x="140" y="20" width="10" height="80" fill="url(#specGradient)" opacity="0.45"/>
+                    <rect class="spec-bar" x="155" y="10" width="10" height="90" fill="url(#specGradient)" opacity="0.5"/>
+                    <rect class="spec-bar" x="170" y="25" width="10" height="75" fill="url(#specGradient)" opacity="0.35"/>
+                    <rect class="spec-bar" x="185" y="15" width="10" height="85" fill="url(#specGradient)" opacity="0.4"/>
+
+                    <!-- More bars to fill width -->
+                    <rect class="spec-bar" x="200" y="20" width="10" height="80" fill="url(#specGradient)" opacity="0.3"/>
+                    <rect class="spec-bar" x="215" y="10" width="10" height="90" fill="url(#specGradient)" opacity="0.45"/>
+                    <rect class="spec-bar" x="230" y="30" width="10" height="70" fill="url(#specGradient)" opacity="0.35"/>
+                    <rect class="spec-bar" x="245" y="15" width="10" height="85" fill="url(#specGradient)" opacity="0.4"/>
+                    <rect class="spec-bar" x="260" y="25" width="10" height="75" fill="url(#specGradient)" opacity="0.3"/>
+                    <rect class="spec-bar" x="275" y="5" width="10" height="95" fill="url(#specGradient)" opacity="0.5"/>
+                    <rect class="spec-bar" x="290" y="20" width="10" height="80" fill="url(#specGradient)" opacity="0.4"/>
+
+                    <rect class="spec-bar" x="310" y="30" width="10" height="70" fill="url(#specGradient)" opacity="0.35"/>
+                    <rect class="spec-bar" x="325" y="15" width="10" height="85" fill="url(#specGradient)" opacity="0.4"/>
+                    <rect class="spec-bar" x="340" y="20" width="10" height="80" fill="url(#specGradient)" opacity="0.45"/>
+                    <rect class="spec-bar" x="355" y="10" width="10" height="90" fill="url(#specGradient)" opacity="0.5"/>
+                    <rect class="spec-bar" x="370" y="25" width="10" height="75" fill="url(#specGradient)" opacity="0.35"/>
+                    <rect class="spec-bar" x="385" y="15" width="10" height="85" fill="url(#specGradient)" opacity="0.4"/>
+
+                    <rect class="spec-bar" x="400" y="20" width="10" height="80" fill="url(#specGradient)" opacity="0.3"/>
+                    <rect class="spec-bar" x="415" y="10" width="10" height="90" fill="url(#specGradient)" opacity="0.45"/>
+                    <rect class="spec-bar" x="430" y="30" width="10" height="70" fill="url(#specGradient)" opacity="0.35"/>
+                    <rect class="spec-bar" x="445" y="15" width="10" height="85" fill="url(#specGradient)" opacity="0.4"/>
+                    <rect class="spec-bar" x="460" y="25" width="10" height="75" fill="url(#specGradient)" opacity="0.3"/>
+                    <rect class="spec-bar" x="475" y="5" width="10" height="95" fill="url(#specGradient)" opacity="0.5"/>
+                    <rect class="spec-bar" x="490" y="20" width="10" height="80" fill="url(#specGradient)" opacity="0.4"/>
                 </svg>
-                <figcaption>Figure 2: SVG Bar Chart showing quarterly data visualization entirely in HTML/SVG</figcaption>
-            </figure>
 
-            <div class="mt-2">
-                <h3>Picture Element (Art Direction)</h3>
-                <p class="mb-1">The <code>&lt;picture&gt;</code> element provides art direction for responsive images, allowing different images for different viewport sizes and pixel densities.</p>
-
-                <figure>
-                    <picture>
-                        <!-- Fallback gradient image using data URI -->
-                        <img src="data:image/svg+xml,%3Csvg width='800' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%232563eb;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%237c3aed;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='400' fill='url(%23grad)'/%3E%3Ctext x='400' y='200' font-size='40' fill='white' text-anchor='middle'%3EResponsive Image%3C/text%3E%3C/svg%3E"
-                             alt="Responsive gradient placeholder"
-                             style="width: 100%; height: auto; border-radius: var(--radius);">
-                    </picture>
-                    <figcaption>Figure 3: Picture element with SVG data URI fallback demonstrating responsive image techniques</figcaption>
-                </figure>
-            </div>
-        </section>
-
-        <!-- Data Tables -->
-        <section>
-            <h2>Semantic Data Tables</h2>
-            <p class="mb-1">HTML tables with proper semantic structure using <code>&lt;thead&gt;</code>, <code>&lt;tbody&gt;</code>, <code>&lt;tfoot&gt;</code>.</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Technology</th>
-                        <th>Category</th>
-                        <th>Year</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>HTML5</td>
-                        <td>Markup Language</td>
-                        <td>2014</td>
-                        <td><mark>Active</mark></td>
-                    </tr>
-                    <tr>
-                        <td>CSS3</td>
-                        <td>Styling</td>
-                        <td>2011</td>
-                        <td><mark>Active</mark></td>
-                    </tr>
-                    <tr>
-                        <td>SVG</td>
-                        <td>Vector Graphics</td>
-                        <td>2001</td>
-                        <td><mark>Active</mark></td>
-                    </tr>
-                    <tr>
-                        <td>WebP</td>
-                        <td>Image Format</td>
-                        <td>2010</td>
-                        <td><mark>Active</mark></td>
-                    </tr>
-                    <tr>
-                        <td>AVIF</td>
-                        <td>Image Format</td>
-                        <td>2019</td>
-                        <td><mark>Emerging</mark></td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-
-        <!-- CSS Modal Demonstration -->
-        <section>
-            <h2>Pure CSS Modal (Checkbox Hack)</h2>
-            <p class="mb-1">This modal uses the checkbox hack technique—no JavaScript required!</p>
-
-            <label for="modal1" class="button">Open Modal</label>
-
-            <input type="checkbox" id="modal1" class="modal-toggle">
-            <div class="modal-overlay">
-                <div class="modal-box">
-                    <div class="modal-header">
-                        <h3>CSS-Only Modal Dialog</h3>
-                        <label for="modal1" class="modal-close" aria-label="Close">&times;</label>
-                    </div>
-                    <div class="modal-body">
-                        <h4>How It Works</h4>
-                        <p>This modal uses a hidden checkbox and CSS selectors to toggle visibility:</p>
-                        <ul style="margin-left: 2rem; margin-top: 1rem;">
-                            <li>A hidden <code>&lt;input type="checkbox"&gt;</code> controls the state</li>
-                            <li>A <code>&lt;label&gt;</code> triggers the checkbox when clicked</li>
-                            <li>CSS <code>:checked</code> pseudo-class shows/hides the modal</li>
-                            <li>The <code>~</code> sibling combinator targets the overlay</li>
-                        </ul>
-
-                        <h4 class="mt-2">Advantages</h4>
-                        <ul style="margin-left: 2rem; margin-top: 1rem;">
-                            <li>No JavaScript dependencies</li>
-                            <li>Lightweight and fast</li>
-                            <li>Works with CSS disabled (graceful degradation)</li>
-                            <li>Fully customizable with CSS</li>
-                        </ul>
-
-                        <p class="mt-2 text-center">
-                            <label for="modal1" class="button-secondary">Close Modal</label>
-                        </p>
-                    </div>
+                <div class="fft-controls">
+                    <label>FFT Size:</label>
+                    <select>
+                        <option>512</option>
+                        <option>1024</option>
+                        <option selected>2048</option>
+                        <option>4096</option>
+                        <option>8192</option>
+                    </select>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- Grid Layout Showcase -->
-        <section>
-            <h2>CSS Grid Layout Cards</h2>
-            <div class="grid">
-                <div class="card">
-                    <h3>🎨 Pure CSS</h3>
-                    <p>All styling achieved with modern CSS3 features including custom properties, flexbox, grid, and advanced selectors.</p>
+        <!-- Meters Panel -->
+        <div class="meters-panel">
+            <div class="meter">
+                <div class="meter-label">Peak L</div>
+                <div class="peak-meter"></div>
+            </div>
+
+            <div class="meter">
+                <div class="meter-label">Peak R</div>
+                <div class="peak-meter"></div>
+            </div>
+
+            <div class="meter">
+                <div class="meter-label">RMS</div>
+                <div class="meter-value">-18 dB</div>
+                <div class="vu-meter"></div>
+            </div>
+
+            <div class="meter">
+                <div class="meter-label">Duration</div>
+                <div class="meter-value">0:00</div>
+            </div>
+
+            <div class="meter">
+                <div class="meter-label">Sample Rate</div>
+                <div class="meter-value">44.1kHz</div>
+            </div>
+
+            <div class="meter">
+                <div class="meter-label">Bit Depth</div>
+                <div class="meter-value">16-bit</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Controls Panel -->
+    <div class="controls-panel">
+        <div class="control-group">
+            <label for="volumeControl">Volume</label>
+            <input type="range" id="volumeControl" min="0" max="100" value="100">
+            <div class="range-value">100%</div>
+        </div>
+
+        <div class="control-group">
+            <label for="playbackRate">Playback Speed</label>
+            <input type="range" id="playbackRate" min="0.25" max="2" step="0.25" value="1">
+            <div class="range-value">1.0x</div>
+        </div>
+
+        <div class="control-group">
+            <label for="panControl">Pan</label>
+            <input type="range" id="panControl" min="-100" max="100" value="0">
+            <div class="range-value">Center</div>
+        </div>
+
+        <div class="control-group">
+            <label for="zoomControl">Zoom</label>
+            <input type="range" id="zoomControl" min="1" max="10" value="1">
+            <div class="range-value">1x</div>
+        </div>
+    </div>
+
+    <!-- Effects Panel -->
+    <details class="effects-panel" open>
+        <summary>Audio Effects</summary>
+        <div class="effects-grid">
+            <div class="effect-control">
+                <h4>
+                    <input type="checkbox" id="reverbToggle">
+                    <label for="reverbToggle" style="cursor: pointer;">Reverb</label>
+                </h4>
+                <div class="control-group">
+                    <label>Room Size</label>
+                    <input type="range" min="0" max="100" value="50">
                 </div>
-                <div class="card">
-                    <h3>📱 Responsive</h3>
-                    <p>Fully responsive design that adapts to all screen sizes using CSS media queries and flexible layouts.</p>
-                </div>
-                <div class="card">
-                    <h3>♿ Accessible</h3>
-                    <p>Semantic HTML5 with proper ARIA attributes, keyboard navigation, and screen reader support.</p>
-                </div>
-                <div class="card">
-                    <h3>⚡ Performance</h3>
-                    <p>Zero JavaScript means faster load times, better performance, and improved battery life.</p>
-                </div>
-                <div class="card">
-                    <h3>🔧 Maintainable</h3>
-                    <p>Clean, semantic markup makes the code easy to understand, maintain, and extend.</p>
-                </div>
-                <div class="card">
-                    <h3>🌐 Standards</h3>
-                    <p>Built with web standards following W3C and WHATWG specifications for maximum compatibility.</p>
+                <div class="control-group">
+                    <label>Wet/Dry</label>
+                    <input type="range" min="0" max="100" value="30">
                 </div>
             </div>
-        </section>
 
-        <!-- Advanced CSS Techniques -->
-        <section>
-            <h2>Advanced CSS Techniques Demonstrated</h2>
-            <details open>
-                <summary>CSS Custom Properties (Variables)</summary>
-                <p>This entire page uses CSS custom properties defined in <code>:root</code> for consistent theming and easy maintenance.</p>
-                <code style="display: block; margin-top: 1rem; padding: 1rem; background: var(--dark);">
---primary: #2563eb;<br>
---secondary: #7c3aed;<br>
---transition: 0.3s ease;
-                </code>
-            </details>
-
-            <details>
-                <summary>Pseudo-Classes & Pseudo-Elements</summary>
-                <ul style="margin-left: 2rem; margin-top: 1rem;">
-                    <li><code>:checked</code> - For tab and modal toggles</li>
-                    <li><code>:hover</code>, <code>:focus</code>, <code>:active</code> - Interactive states</li>
-                    <li><code>:valid</code>, <code>:invalid</code> - Form validation</li>
-                    <li><code>::before</code>, <code>::after</code> - Custom decorations</li>
-                    <li><code>::placeholder</code> - Input placeholder styling</li>
-                    <li><code>::backdrop</code> - Dialog backdrop styling</li>
-                </ul>
-            </details>
-
-            <details>
-                <summary>Advanced Selectors</summary>
-                <ul style="margin-left: 2rem; margin-top: 1rem;">
-                    <li><code>~</code> - General sibling combinator (for tabs/modals)</li>
-                    <li><code>+</code> - Adjacent sibling combinator</li>
-                    <li><code>[attribute]</code> - Attribute selectors</li>
-                    <li><code>:not()</code> - Negation pseudo-class</li>
-                    <li><code>:nth-child()</code> - Structural selectors</li>
-                </ul>
-            </details>
-
-            <details>
-                <summary>Modern Layout Techniques</summary>
-                <ul style="margin-left: 2rem; margin-top: 1rem;">
-                    <li><strong>Flexbox</strong> - For one-dimensional layouts (nav, buttons)</li>
-                    <li><strong>CSS Grid</strong> - For two-dimensional layouts (card grids)</li>
-                    <li><strong>Sticky Positioning</strong> - For the header</li>
-                    <li><strong>Fixed Positioning</strong> - For modal overlays</li>
-                </ul>
-            </details>
-
-            <details>
-                <summary>Animations & Transitions</summary>
-                <ul style="margin-left: 2rem; margin-top: 1rem;">
-                    <li>CSS transitions on all interactive elements</li>
-                    <li>Keyframe animations for modal and tab appearance</li>
-                    <li>Transform animations for hover effects</li>
-                    <li>Smooth scroll behavior</li>
-                </ul>
-            </details>
-        </section>
-
-        <!-- HTML5 Elements Reference -->
-        <section>
-            <h2>HTML5 Elements Used in This Showcase</h2>
-            <div class="grid">
-                <div class="card">
-                    <h4>Interactive Elements</h4>
-                    <ul style="margin-left: 1.5rem;">
-                        <li><code>&lt;details&gt;</code></li>
-                        <li><code>&lt;summary&gt;</code></li>
-                        <li><code>&lt;dialog&gt;</code></li>
-                    </ul>
+            <div class="effect-control">
+                <h4>
+                    <input type="checkbox" id="delayToggle">
+                    <label for="delayToggle" style="cursor: pointer;">Delay</label>
+                </h4>
+                <div class="control-group">
+                    <label>Time (ms)</label>
+                    <input type="range" min="0" max="1000" value="250">
                 </div>
-                <div class="card">
-                    <h4>Form Elements</h4>
-                    <ul style="margin-left: 1.5rem;">
-                        <li><code>&lt;datalist&gt;</code></li>
-                        <li><code>&lt;output&gt;</code></li>
-                        <li><code>&lt;meter&gt;</code></li>
-                        <li><code>&lt;progress&gt;</code></li>
-                        <li><code>&lt;fieldset&gt;</code></li>
-                        <li><code>&lt;legend&gt;</code></li>
-                        <li><code>&lt;optgroup&gt;</code></li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h4>Semantic Text</h4>
-                    <ul style="margin-left: 1.5rem;">
-                        <li><code>&lt;mark&gt;</code></li>
-                        <li><code>&lt;time&gt;</code></li>
-                        <li><code>&lt;abbr&gt;</code></li>
-                        <li><code>&lt;kbd&gt;</code></li>
-                        <li><code>&lt;samp&gt;</code></li>
-                        <li><code>&lt;var&gt;</code></li>
-                        <li><code>&lt;cite&gt;</code></li>
-                        <li><code>&lt;dfn&gt;</code></li>
-                        <li><code>&lt;ruby&gt;</code></li>
-                        <li><code>&lt;rt&gt;</code></li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h4>Media & Graphics</h4>
-                    <ul style="margin-left: 1.5rem;">
-                        <li><code>&lt;figure&gt;</code></li>
-                        <li><code>&lt;figcaption&gt;</code></li>
-                        <li><code>&lt;picture&gt;</code></li>
-                        <li><code>&lt;svg&gt;</code></li>
-                    </ul>
+                <div class="control-group">
+                    <label>Feedback</label>
+                    <input type="range" min="0" max="100" value="40">
                 </div>
             </div>
-        </section>
 
-        <!-- Footer -->
-        <section class="text-center" style="background: var(--gray); border: 2px solid var(--primary);">
-            <h2>Built with Web Standards</h2>
-            <p style="font-size: 1.1em; margin: 1rem 0;">This entire showcase uses <strong>ZERO JavaScript</strong></p>
-            <p>All interactions are powered by pure HTML5 and CSS3</p>
-            <p class="mt-2">
-                <mark>100% Semantic</mark> •
-                <mark>Fully Accessible</mark> •
-                <mark>Standards Compliant</mark> •
-                <mark>Future Proof</mark>
-            </p>
-            <p class="mt-2" style="color: var(--text-dim);">
-                Created with ♥ using HTML5, CSS3, and Web Standards<br>
-                <time datetime="2026-01-20">January 2026</time>
-            </p>
-        </section>
-    </main>
+            <div class="effect-control">
+                <h4>
+                    <input type="checkbox" id="distortionToggle">
+                    <label for="distortionToggle" style="cursor: pointer;">Distortion</label>
+                </h4>
+                <div class="control-group">
+                    <label>Drive</label>
+                    <input type="range" min="0" max="100" value="20">
+                </div>
+                <div class="control-group">
+                    <label>Tone</label>
+                    <input type="range" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="effect-control">
+                <h4>
+                    <input type="checkbox" id="compressorToggle">
+                    <label for="compressorToggle" style="cursor: pointer;">Compressor</label>
+                </h4>
+                <div class="control-group">
+                    <label>Threshold</label>
+                    <input type="range" min="-60" max="0" value="-24">
+                </div>
+                <div class="control-group">
+                    <label>Ratio</label>
+                    <input type="range" min="1" max="20" value="4">
+                </div>
+            </div>
+
+            <div class="effect-control">
+                <h4>EQ - Low</h4>
+                <div class="control-group">
+                    <label>Frequency</label>
+                    <input type="range" min="20" max="500" value="100">
+                </div>
+                <div class="control-group">
+                    <label>Gain (dB)</label>
+                    <input type="range" min="-12" max="12" value="0">
+                </div>
+            </div>
+
+            <div class="effect-control">
+                <h4>EQ - Mid</h4>
+                <div class="control-group">
+                    <label>Frequency</label>
+                    <input type="range" min="500" max="5000" value="1000">
+                </div>
+                <div class="control-group">
+                    <label>Gain (dB)</label>
+                    <input type="range" min="-12" max="12" value="0">
+                </div>
+            </div>
+
+            <div class="effect-control">
+                <h4>EQ - High</h4>
+                <div class="control-group">
+                    <label>Frequency</label>
+                    <input type="range" min="5000" max="20000" value="8000">
+                </div>
+                <div class="control-group">
+                    <label>Gain (dB)</label>
+                    <input type="range" min="-12" max="12" value="0">
+                </div>
+            </div>
+
+            <div class="effect-control">
+                <h4>Filter</h4>
+                <div class="control-group">
+                    <label>Type</label>
+                    <select style="width: 100%; padding: 4px; background: var(--bg-primary); color: var(--text); border: 1px solid var(--border); border-radius: 3px;">
+                        <option>Low Pass</option>
+                        <option>High Pass</option>
+                        <option>Band Pass</option>
+                        <option>Notch</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Cutoff</label>
+                    <input type="range" min="20" max="20000" value="1000">
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-item">
+            <span>
+                <span>File:</span>
+                <span class="status-value">No file loaded</span>
+            </span>
+            <span>
+                <span>Format:</span>
+                <span class="status-value">-</span>
+            </span>
+            <span>
+                <span>Channels:</span>
+                <span class="status-value">-</span>
+            </span>
+        </div>
+        <div class="status-item">
+            <span class="status-value">Pure HTML/CSS Audio Editor • Zero JavaScript</span>
+        </div>
+    </div>
 </body>
 </html>
